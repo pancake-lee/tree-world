@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Table, Input, Button, Space } from "antd";
+import { Table, Input, Button, Space, Drawer } from "antd";
 import { ColumnMeta, DataRow, fetchTableMetaAndData } from "./tableData";
 import "antd/dist/reset.css";
 import { SearchOutlined } from "@ant-design/icons";
@@ -95,6 +95,9 @@ export default function Home() {
     }
     return getDefaultWidths();
   });
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [desc, setDesc] = useState<string>("");
+  const [metadata, setMetadata] = useState<Record<string, string>>({});
 
   useEffect(() => {
     // 调用 http 接口获取列定义和数据
@@ -189,17 +192,56 @@ export default function Home() {
     setMounted(true);
   }, []);
 
+  // 选中行展示描述和metadata
+  const onRow = (record: DataRow) => ({
+    onClick: () => {
+      setDesc(record.desc || "");
+      setMetadata(record.metadata || {});
+      setDrawerOpen(true);
+    }
+  });
+
   return (
     <div style={{ height: "100vh", width: "100vw", padding: 16 }}>
       {mounted && (
-        <Table
-          columns={columnsWithResize}
-          dataSource={data}
-          pagination={false}
-          rowKey="key"
-          scroll={{ y: "80vh" }}
-          components={components}
-        />
+        <>
+          <Table
+            columns={columnsWithResize}
+            dataSource={data}
+            pagination={false}
+            rowKey="key"
+            scroll={{ y: "80vh" }}
+            components={components}
+            onRow={onRow}
+          />
+          <Drawer
+            title="详情"
+            placement="right"
+            width={400}
+            onClose={() => setDrawerOpen(false)}
+            open={drawerOpen}
+          >
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ fontWeight: 600, marginBottom: 8 }}>描述</div>
+              <div style={{ whiteSpace: "pre-wrap" }}>{desc || "无描述"}</div>
+            </div>
+            <div>
+              <div style={{ fontWeight: 600, marginBottom: 8 }}>元数据</div>
+              {metadata && Object.keys(metadata).length > 0 ? (
+                <div>
+                  {Object.entries(metadata).map(([k, v]) => (
+                    <div key={k} style={{ marginBottom: 4 }}>
+                      <span style={{ color: "#888" }}>{k}：</span>
+                      <span>{v}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div>无元数据</div>
+              )}
+            </div>
+          </Drawer>
+        </>
       )}
     </div>
   );

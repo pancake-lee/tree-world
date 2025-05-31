@@ -11,6 +11,8 @@ export type ColumnMeta = {
 export type DataRow = {
   key: string;
   [key: string]: any;
+  desc?: string;
+  metadata?: Record<string, string>;
   children?: DataRow[];
 };
 
@@ -28,6 +30,7 @@ export async function fetchTableMetaAndData(): Promise<{
     { title: "估时", dataIndex: "estimate", key: "estimate" },
     { title: "开始", dataIndex: "start", key: "start" },
     { title: "结束", dataIndex: "end", key: "end" },
+    // 不包含desc
   ];
 
   // 随机生成状态和时间
@@ -46,6 +49,29 @@ export async function fetchTableMetaAndData(): Promise<{
     );
     return d.toISOString().slice(0, 10);
   }
+  function randomDesc() {
+    const pool = [
+      "这是一个测试任务。",
+      "需要与前端协作。",
+      "优先级较高。",
+      "请及时完成。",
+      "有风险需评估。",
+      "自动生成的描述内容。",
+      "涉及多个模块。",
+      "请联系负责人。",
+      "预计本周完成。",
+      "等待资源。",
+    ];
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+  function randomMetadata() {
+    return {
+      owner: ["张三", "李四", "王五", "赵六"][Math.floor(Math.random() * 4)],
+      priority: ["高", "中", "低"][Math.floor(Math.random() * 3)],
+      tag: ["A", "B", "C", "D"][Math.floor(Math.random() * 4)],
+      note: "元数据示例",
+    };
+  }
 
   // 构造树形结构，部分节点有children
   const data: DataRow[] = [];
@@ -58,6 +84,8 @@ export async function fetchTableMetaAndData(): Promise<{
       estimate: randomEstimate(),
       start: randomDate(i),
       end: randomDate(i + 2),
+      desc: randomDesc(),
+      metadata: randomMetadata(),
       children: [],
     };
     for (let j = 0; j < 3; j++) {
@@ -68,6 +96,8 @@ export async function fetchTableMetaAndData(): Promise<{
         estimate: randomEstimate(),
         start: randomDate(i + j),
         end: randomDate(i + j + 2),
+        desc: randomDesc(),
+        metadata: randomMetadata(),
         children: [],
       };
       for (let k = 0; k < 2; k++) {
@@ -78,6 +108,8 @@ export async function fetchTableMetaAndData(): Promise<{
           estimate: randomEstimate(),
           start: randomDate(i + j + k),
           end: randomDate(i + j + k + 1),
+          desc: randomDesc(),
+          metadata: randomMetadata(),
         };
         second.children!.push(third);
       }
@@ -95,6 +127,8 @@ export async function fetchTableMetaAndData(): Promise<{
       estimate: randomEstimate(),
       start: randomDate(i + 5),
       end: randomDate(i + 6),
+      desc: randomDesc(),
+      metadata: randomMetadata(),
     });
   }
 
@@ -108,6 +142,8 @@ export async function fetchTableMetaAndData(): Promise<{
       estimate: randomEstimate(),
       start: randomDate(i + 7),
       end: randomDate(i + 8),
+      desc: randomDesc(),
+      metadata: randomMetadata(),
     });
   }
 
@@ -120,6 +156,8 @@ export async function fetchTableMetaAndData(): Promise<{
       estimate: randomEstimate(),
       start: randomDate(),
       end: randomDate(1),
+      desc: randomDesc(),
+      metadata: randomMetadata(),
     });
   }
 
