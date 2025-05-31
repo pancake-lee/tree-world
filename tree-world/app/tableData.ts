@@ -26,7 +26,7 @@ export async function fetchTableMetaAndData(): Promise<{
   // 目前返回模拟数据
 
   const columns: ColumnMeta[] = [
-    { title: "任务", dataIndex: "task", key: "task" ,enableSearch: true},
+    { title: "任务", dataIndex: "task", key: "task", enableSearch: true },
     { title: "状态", dataIndex: "status", key: "status" },
     { title: "估时", dataIndex: "estimate", key: "estimate" },
     { title: "开始", dataIndex: "start", key: "start" },
@@ -44,9 +44,7 @@ export async function fetchTableMetaAndData(): Promise<{
   }
   function randomDate(offset = 0) {
     const d = new Date(
-      Date.now() +
-        offset * 86400000 +
-        Math.floor(Math.random() * 86400000)
+      Date.now() + offset * 86400000 + Math.floor(Math.random() * 86400000)
     );
     return d.toISOString().slice(0, 10);
   }
@@ -202,4 +200,3 @@ export function updateTaskField(
 
   return updateRow(data);
 }
-
