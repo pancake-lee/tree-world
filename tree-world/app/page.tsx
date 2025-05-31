@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Table, Input, Button, Space, Drawer } from "antd";
+import { Table, Input, Button, Space, Drawer, Form, message } from "antd";
 import { ColumnMeta, DataRow, fetchTableMetaAndData } from "./tableData";
 import "antd/dist/reset.css";
 import { SearchOutlined } from "@ant-design/icons";
@@ -95,9 +95,14 @@ export default function Home() {
     }
     return getDefaultWidths();
   });
+  const [editingKey, setEditingKey] = useState<string>("");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [desc, setDesc] = useState<string>("");
   const [metadata, setMetadata] = useState<Record<string, string>>({});
+  const [drawerEditing, setDrawerEditing] = useState(false);
+  const [drawerEditDesc, setDrawerEditDesc] = useState<string>("");
+  const [drawerEditMetadata, setDrawerEditMetadata] = useState<Record<string, string>>({});
+  const [form] = Form.useForm();
 
   useEffect(() => {
     // 调用 http 接口获取列定义和数据
@@ -124,7 +129,7 @@ export default function Home() {
     };
 
   // 动态设置列宽和拖拽
-  const columnsWithResize = columns.map((col: ColumnMeta) => ({
+  const columnsWithResizeBase = columns.map((col: ColumnMeta) => ({
     ...col,
     width: colWidths[col.key as keyof typeof colWidths],
     onHeaderCell: () => ({
@@ -192,42 +197,222 @@ export default function Home() {
     setMounted(true);
   }, []);
 
-  // 选中行展示描述和metadata
-  const onRow = (record: DataRow) => ({
-    onClick: () => {
-      setDesc(record.desc || "");
-      setMetadata(record.metadata || {});
-      setDrawerOpen(true);
+  // 选中行展示描述和metadata（详情按钮触发，不影响表格编辑状态）
+  const showDrawer = (record: DataRow) => {
+    setDesc(record.desc || "");
+    setDrawerEditDesc(record.desc || "");
+    setMetadata(record.metadata || {});
+    setDrawerEditMetadata({ ...(record.metadata || {}) });
+    // 不设置 setEditingKey，不影响表格编辑状态
+    setDrawerEditing(false);
+    setDrawerOpen(true);
+  };
+
+  // 表格编辑
+  const isEditing = (record: DataRow) => record.key === editingKey;
+  const [editingRow, setEditingRow] = useState<DataRow | null>(null);
+
+  // 单元格点击进入编辑状态
+  const edit = (record: DataRow, dataIndex: string) => {
+    setEditingKey(record.key);
+    setEditingRow({ ...record });
+    form.setFieldsValue({ ...record });
+    setEditingDataIndex(dataIndex);
+  };
+
+  // 记录当前编辑的列
+  const [editingDataIndex, setEditingDataIndex] = useState<string | null>(null);
+
+  const cancel = () => {
+    setEditingKey("");
+    setEditingRow(null);
+  };
+
+  const save = async (key: string) => {
+    try {
+      const row = (await form.validateFields()) as DataRow;
+      const newData = [...data];
+      const updateRow = (rows: DataRow[]): boolean => {
+        for (let i = 0; i < rows.length; i++) {
+          if (rows[i].key === key) {
+            rows[i] = { ...rows[i], ...row };
+            return true;
+          }
+          if (rows[i].children && updateRow(rows[i].children as DataRow[])) return true;
+        }
+        return false;
+      };
+      updateRow(newData);
+      setData(newData);
+      setEditingKey("");
+      setEditingRow(null);
+      message.success("保存成功");
+    } catch {
+      // 校验失败
     }
+  };
+
+  // 列定义，支持单元格点击编辑
+  const columnsWithResize = columns.map((col: ColumnMeta) => {
+    const editable = true;
+    return {
+      ...col,
+      width: colWidths[col.key as keyof typeof colWidths],
+      onHeaderCell: () => ({
+        width: colWidths[col.key as keyof typeof colWidths],
+        onResize: handleResize(col.key),
+      }),
+      ...getColumnSearchProps<DataRow>(col.dataIndex as keyof DataRow, col.title as string),
+      onCell: (record: DataRow) => ({
+        record,
+        editable,
+        dataIndex: col.dataIndex,
+        title: col.title,
+        editing: isEditing(record) && editingDataIndex === col.dataIndex,
+        onClick: () => {
+          if (!isEditing(record) || editingDataIndex !== col.dataIndex) {
+            edit(record, col.dataIndex);
+          }
+        },
+        style: { cursor: "pointer" },
+      }),
+      render: (text: any, record: DataRow) =>
+        isEditing(record) && editingDataIndex === col.dataIndex ? (
+          <Form.Item
+            name={col.dataIndex}
+            style={{ margin: 0 }}
+            rules={[{ required: false }]}
+          >
+            <Input
+              autoFocus
+              onPressEnter={() => save(record.key)}
+              onBlur={() => save(record.key)}
+            />
+          </Form.Item>
+        ) : (
+          text
+        ),
+    };
   });
+
+  // 编辑按钮列和详情按钮列
+  columnsWithResize.push({
+    title: "操作",
+    key: "action",
+    dataIndex: "action",
+    width: 140,
+    onHeaderCell: () => ({
+      width: 140,
+    }),
+    onCell: (record: DataRow) => ({
+      record,
+      editable: false,
+      dataIndex: "action",
+      title: "操作",
+      editing: false,
+      onClick: () => {},
+      style: { cursor: "pointer" },
+    }),
+    render: (_: any, record: DataRow) =>
+      isEditing(record) ? (
+        <span>
+          <a onClick={() => save(record.key)} style={{ marginRight: 8 }}>保存</a>
+          <a onClick={cancel} style={{ marginRight: 8 }}>取消</a>
+          <a onClick={() => showDrawer(record)}>详情</a>
+        </span>
+      ) : (
+        <>
+          <a onClick={() => showDrawer(record)}>详情</a>
+        </>
+      ),
+  });
+
+  // 抽屉编辑
+  const handleDrawerSave = () => {
+    // 更新data
+    const newData = [...data];
+    const updateRow = (rows: DataRow[]): boolean => {
+      for (let i = 0; i < rows.length; i++) {
+        if (rows[i].key === editingKey) {
+          rows[i] = {
+            ...rows[i],
+            desc: drawerEditDesc,
+            metadata: { ...drawerEditMetadata },
+          };
+          return true;
+        }
+        if (rows[i].children && updateRow(rows[i].children as DataRow[])) return true;
+      }
+      return false;
+    };
+    updateRow(newData);
+    setData(newData);
+    setDesc(drawerEditDesc);
+    setMetadata({ ...drawerEditMetadata });
+    setDrawerEditing(false);
+    message.success("保存成功");
+  };
 
   return (
     <div style={{ height: "100vh", width: "100vw", padding: 16 }}>
       {mounted && (
         <>
-          <Table
-            columns={columnsWithResize}
-            dataSource={data}
-            pagination={false}
-            rowKey="key"
-            scroll={{ y: "80vh" }}
-            components={components}
-            onRow={onRow}
-          />
+          <Form form={form} component={false}>
+            <Table
+              columns={columnsWithResize}
+              dataSource={data}
+              pagination={false}
+              rowKey="key"
+              scroll={{ y: "80vh" }}
+              components={components}
+              // 移除 onRow，避免点击整行触发抽屉
+            />
+          </Form>
           <Drawer
             title="详情"
             placement="right"
             width={400}
             onClose={() => setDrawerOpen(false)}
             open={drawerOpen}
+            extra={
+              drawerEditing ? (
+                <Space>
+                  <Button type="primary" onClick={handleDrawerSave}>保存</Button>
+                  <Button onClick={() => setDrawerEditing(false)}>取消</Button>
+                </Space>
+              ) : (
+                <Button onClick={() => setDrawerEditing(true)}>编辑</Button>
+              )
+            }
           >
             <div style={{ marginBottom: 24 }}>
               <div style={{ fontWeight: 600, marginBottom: 8 }}>描述</div>
-              <div style={{ whiteSpace: "pre-wrap" }}>{desc || "无描述"}</div>
+              {drawerEditing ? (
+                <Input.TextArea
+                  value={drawerEditDesc}
+                  onChange={e => setDrawerEditDesc(e.target.value)}
+                  rows={3}
+                />
+              ) : (
+                <div style={{ whiteSpace: "pre-wrap" }}>{desc || "无描述"}</div>
+              )}
             </div>
             <div>
               <div style={{ fontWeight: 600, marginBottom: 8 }}>元数据</div>
-              {metadata && Object.keys(metadata).length > 0 ? (
+              {drawerEditing ? (
+                <div>
+                  {Object.entries(drawerEditMetadata).map(([k, v]) => (
+                    <div key={k} style={{ marginBottom: 8, display: "flex", alignItems: "center" }}>
+                      <span style={{ color: "#888", minWidth: 60 }}>{k}：</span>
+                      <Input
+                        value={v}
+                        style={{ flex: 1 }}
+                        onChange={e => setDrawerEditMetadata(md => ({ ...md, [k]: e.target.value }))}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : metadata && Object.keys(metadata).length > 0 ? (
                 <div>
                   {Object.entries(metadata).map(([k, v]) => (
                     <div key={k} style={{ marginBottom: 4 }}>
