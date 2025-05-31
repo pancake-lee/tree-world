@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Table, Input, Button, Space, Drawer, Form, message } from "antd";
+import { Table, Input, Button, Space, Drawer, Form, message, ConfigProvider, theme } from "antd";
 import { ColumnMeta, DataRow, fetchTableMetaAndData } from "./tableData";
 import "antd/dist/reset.css";
 import { SearchOutlined } from "@ant-design/icons";
@@ -326,80 +326,92 @@ export default function Home() {
 
   // --------------------------------------------------
   return (
-    <div style={{ height: "100vh", width: "100vw", padding: 16 }}>
-      {mounted && (
-        <>
-          <Form form={form} component={false}>
-            <Table
-              columns={columnsWithResize}
-              dataSource={data}
-              pagination={false}
-              rowKey="key"
-              scroll={{ y: "80vh" }}
-              components={components}
-              // 移除 onRow，避免点击整行触发抽屉
-            />
-          </Form>
-          <Drawer
-            title="详情"
-            placement="right"
-            width={400}
-            onClose={() => setDrawerOpen(false)}
-            open={drawerOpen}
-            extra={
-              drawerEditing ? (
-                <Space>
-                  <Button type="primary" onClick={handleDrawerSave}>保存</Button>
-                  <Button onClick={() => setDrawerEditing(false)}>取消</Button>
-                </Space>
-              ) : (
-                <Button onClick={() => setDrawerEditing(true)}>编辑</Button>
-              )
-            }
-          >
-            <div style={{ marginBottom: 24 }}>
-              <div style={{ fontWeight: 600, marginBottom: 8 }}>描述</div>
-              {drawerEditing ? (
-                <Input.TextArea
-                  value={drawerEditDesc}
-                  onChange={e => setDrawerEditDesc(e.target.value)}
-                  rows={3}
-                />
-              ) : (
-                <div style={{ whiteSpace: "pre-wrap" }}>{desc || "无描述"}</div>
-              )}
-            </div>
-            <div>
-              <div style={{ fontWeight: 600, marginBottom: 8 }}>元数据</div>
-              {drawerEditing ? (
-                <div>
-                  {Object.entries(drawerEditMetadata).map(([k, v]) => (
-                    <div key={k} style={{ marginBottom: 8, display: "flex", alignItems: "center" }}>
-                      <span style={{ color: "#888", minWidth: 60 }}>{k}：</span>
-                      <Input
-                        value={v}
-                        style={{ flex: 1 }}
-                        onChange={e => setDrawerEditMetadata(md => ({ ...md, [k]: e.target.value }))}
-                      />
-                    </div>
-                  ))}
-                </div>
-              ) : metadata && Object.keys(metadata).length > 0 ? (
-                <div>
-                  {Object.entries(metadata).map(([k, v]) => (
-                    <div key={k} style={{ marginBottom: 4 }}>
-                      <span style={{ color: "#888" }}>{k}：</span>
-                      <span>{v}</span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div>无元数据</div>
-              )}
-            </div>
-          </Drawer>
-        </>
-      )}
-    </div>
+    <ConfigProvider
+      theme={{
+        algorithm: theme.darkAlgorithm,
+      }}
+    >
+      <div style={{ 
+        height: "100vh", 
+        width: "100vw", 
+        padding: 16,
+        backgroundColor: "#141414",
+        color: "#fff"
+      }}>
+        {mounted && (
+          <>
+            <Form form={form} component={false}>
+              <Table
+                columns={columnsWithResize}
+                dataSource={data}
+                pagination={false}
+                rowKey="key"
+                scroll={{ y: "80vh" }}
+                components={components}
+                // 移除 onRow，避免点击整行触发抽屉
+              />
+            </Form>
+            <Drawer
+              title="详情"
+              placement="right"
+              width={400}
+              onClose={() => setDrawerOpen(false)}
+              open={drawerOpen}
+              extra={
+                drawerEditing ? (
+                  <Space>
+                    <Button type="primary" onClick={handleDrawerSave}>保存</Button>
+                    <Button onClick={() => setDrawerEditing(false)}>取消</Button>
+                  </Space>
+                ) : (
+                  <Button onClick={() => setDrawerEditing(true)}>编辑</Button>
+                )
+              }
+            >
+              <div style={{ marginBottom: 24 }}>
+                <div style={{ fontWeight: 600, marginBottom: 8, color: "#fff" }}>描述</div>
+                {drawerEditing ? (
+                  <Input.TextArea
+                    value={drawerEditDesc}
+                    onChange={e => setDrawerEditDesc(e.target.value)}
+                    rows={3}
+                  />
+                ) : (
+                  <div style={{ whiteSpace: "pre-wrap", color: "#d9d9d9" }}>{desc || "无描述"}</div>
+                )}
+              </div>
+              <div>
+                <div style={{ fontWeight: 600, marginBottom: 8, color: "#fff" }}>元数据</div>
+                {drawerEditing ? (
+                  <div>
+                    {Object.entries(drawerEditMetadata).map(([k, v]) => (
+                      <div key={k} style={{ marginBottom: 8, display: "flex", alignItems: "center" }}>
+                        <span style={{ color: "#d9d9d9", minWidth: 60 }}>{k}：</span>
+                        <Input
+                          value={v}
+                          style={{ flex: 1 }}
+                          onChange={e => setDrawerEditMetadata(md => ({ ...md, [k]: e.target.value }))}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ) : metadata && Object.keys(metadata).length > 0 ? (
+                  <div>
+                    {Object.entries(metadata).map(([k, v]) => (
+                      <div key={k} style={{ marginBottom: 4 }}>
+                        <span style={{ color: "#d9d9d9" }}>{k}：</span>
+                        <span style={{ color: "#fff" }}>{v}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ color: "#d9d9d9" }}>无元数据</div>
+                )}
+              </div>
+            </Drawer>
+          </>
+        )}
+      </div>
+    </ConfigProvider>
   );
 }
