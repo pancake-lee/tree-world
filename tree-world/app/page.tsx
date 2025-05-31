@@ -187,6 +187,34 @@ export default function Home() {
           col.title as string
         )
       : {}),
+    onCell: (record: DataRow) => ({
+        record,
+        dataIndex: col.dataIndex,
+        title: col.title,
+        editing: isEditing(record) && editingDataIndex === col.dataIndex,
+        onClick: () => {
+          if (!isEditing(record) || editingDataIndex !== col.dataIndex) {
+            edit(record, col.dataIndex);
+          }
+        },
+        style: { cursor: "pointer" },
+      }),
+      render: (text: any, record: DataRow) =>
+        isEditing(record) && editingDataIndex === col.dataIndex ? (
+          <Form.Item
+            name={col.dataIndex}
+            style={{ margin: 0 }}
+            rules={[{ required: false }]}
+          >
+            <Input
+              autoFocus
+              onPressEnter={() => save(record.key)}
+              onBlur={() => save(record.key)}
+            />
+          </Form.Item>
+        ) : (
+          text
+        ),
   }));
 
   // 详情按钮列
@@ -204,7 +232,7 @@ export default function Home() {
       record,
       dataIndex: "action",
       title: "操作",
-      // 删除了 editable 和 editing 属性
+      editing: false,
       onClick: () => {},
       style: { cursor: "pointer" },
     }),
