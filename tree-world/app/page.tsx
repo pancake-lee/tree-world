@@ -20,7 +20,7 @@ import {
   ConfigProvider,
   theme,
 } from "antd";
-import { ColumnMeta, DataRow, fetchTableMetaAndData } from "./tableData";
+import { ColumnMeta, DataRow, fetchTableMetaAndData, updateRowOrder } from "./tableData";
 import "antd/dist/reset.css";
 import { SearchOutlined } from "@ant-design/icons";
 import type { ColumnType } from "antd/es/table";
@@ -415,6 +415,26 @@ export default function Home() {
       rowKey="key"
       scroll={{ y: "80vh" }}
       components={components}
+      onRow={(record: DataRow) => ({
+        draggable: true,
+        onDragStart: (e: React.DragEvent) => {
+          e.dataTransfer.setData("text/plain", record.key);
+        },
+        onDragOver: (e: React.DragEvent) => {
+          e.preventDefault();
+        },
+        onDrop: (e: React.DragEvent) => {
+          e.preventDefault();
+          const sourceKey = e.dataTransfer.getData("text/plain");
+          const targetKey = record.key;
+          if (sourceKey && sourceKey !== targetKey) {
+            const targetRect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+            const dropY = e.clientY;
+            const newData = updateRowOrder(data, sourceKey, targetKey, dropY, targetRect);
+            setData(newData);
+          }
+        },
+      })}
     />
   );
   // --------------------------------------------------
