@@ -20,7 +20,12 @@ import {
   ConfigProvider,
   theme,
 } from "antd";
-import { ColumnMeta, DataRow, fetchTableMetaAndData, updateRowOrder } from "./tableData";
+import {
+  ColumnMeta,
+  DataRow,
+  fetchTableMetaAndData,
+  updateRowOrder,
+} from "./tableData";
 import "antd/dist/reset.css";
 import { SearchOutlined } from "@ant-design/icons";
 import type { ColumnType } from "antd/es/table";
@@ -117,6 +122,7 @@ export default function Home() {
 
   const [data, setData] = useState<DataRow[]>([]);
   const [columns, setColumns] = useState<ColumnMeta[]>([]);
+
   useEffect(() => {
     // 调用 http 接口获取列定义和数据
     fetchTableMetaAndData().then((res) => {
@@ -407,6 +413,11 @@ export default function Home() {
   };
 
   // --------------------------------------------------
+  // 添加拖拽期间状态，记录目标行及其区域位置
+  const [dragOverInfo, setDragOverInfo] = useState<{
+    key: string;
+    position: "before" | "after" | "child";
+  } | null>(null);
   const tableContent = (
     <Table
       columns={columnsWithResize}
@@ -415,6 +426,14 @@ export default function Home() {
       rowKey="key"
       scroll={{ y: "80vh" }}
       components={components}
+      rowClassName={(record: DataRow) => {
+        if (dragOverInfo && record.key === dragOverInfo.key) {
+          if (dragOverInfo.position === "before") return "drag-before";
+          if (dragOverInfo.position === "after") return "drag-after";
+          if (dragOverInfo.position === "child") return "drag-child";
+        }
+        return "";
+      }}
       onRow={(record: DataRow) => ({
         draggable: true,
         onDragStart: (e: React.DragEvent) => {
@@ -422,17 +441,40 @@ export default function Home() {
         },
         onDragOver: (e: React.DragEvent) => {
           e.preventDefault();
+          const targetRect = (
+            e.currentTarget as HTMLElement
+          ).getBoundingClientRect();
+          const dropY = e.clientY;
+          const topThreshold = targetRect.top + targetRect.height / 4;
+          const bottomThreshold = targetRect.bottom - targetRect.height / 4;
+          let pos: "before" | "after" | "child" = "child";
+          if (dropY < topThreshold) pos = "before";
+          else if (dropY > bottomThreshold) pos = "after";
+          console.log(pos);
+          setDragOverInfo({ key: record.key, position: pos });
+        },
+        onDragLeave: () => {
+          setDragOverInfo(null);
         },
         onDrop: (e: React.DragEvent) => {
           e.preventDefault();
           const sourceKey = e.dataTransfer.getData("text/plain");
           const targetKey = record.key;
           if (sourceKey && sourceKey !== targetKey) {
-            const targetRect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+            const targetRect = (
+              e.currentTarget as HTMLElement
+            ).getBoundingClientRect();
             const dropY = e.clientY;
-            const newData = updateRowOrder(data, sourceKey, targetKey, dropY, targetRect);
+            const newData = updateRowOrder(
+              data,
+              sourceKey,
+              targetKey,
+              dropY,
+              targetRect
+            );
             setData(newData);
           }
+          setDragOverInfo(null);
         },
       })}
     />
@@ -531,7 +573,48 @@ export default function Home() {
     );
   };
 
-  return addTheme(
+  // --------------------------------------------------
+  const addDragStyles = (e: React.JSX.Element) => {
+    return (
+      <>
+        <style>{`
+        /* 为拖拽至上部时显示上边指示线 */
+        tr.drag-before td {
+          position: relative;
+        }
+        tr.drag-before td::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 4px;
+          background: #1890ff;
+        }
+        /* 为拖拽至下部时显示下边指示线 */
+        tr.drag-after td {
+          position: relative;
+        }
+        tr.drag-after td::after {
+          content: "";
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          height: 4px;
+          background: #1890ff;
+        }
+        /* 中间区域显示行背景高亮 */
+        tr.drag-child {
+          background-color: rgba(24,144,255,0.2);
+        }
+      `}</style>
+        {e}
+      </>
+    );
+  };
+
+  return addTheme(addDragStyles(
     <div
       style={{
         height: "100vh",
@@ -550,5 +633,5 @@ export default function Home() {
         </>
       )}
     </div>
-  );
+  ));
 }
