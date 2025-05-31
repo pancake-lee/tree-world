@@ -173,3 +173,32 @@ function countData(arr: DataRow[]): number {
   }
   return count;
 }
+
+// 修改指定任务的字段值
+export function updateTaskField(
+  data: DataRow[],
+  taskName: string,
+  fieldName: string,
+  fieldValue: any
+): DataRow[] {
+  const updateRow = (rows: DataRow[]): DataRow[] => {
+    return rows.map((row) => {
+      if (row.task === taskName) {
+        return {
+          ...row,
+          [fieldName]: fieldValue,
+        };
+      }
+      if (row.children) {
+        return {
+          ...row,
+          children: updateRow(row.children),
+        };
+      }
+      return row;
+    });
+  };
+
+  return updateRow(data);
+}
+
