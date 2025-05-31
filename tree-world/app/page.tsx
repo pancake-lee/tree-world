@@ -28,8 +28,8 @@ import type { ColumnType } from "antd/es/table";
 const COLUMN_WIDTH_KEY = "tree-table-column-widths";
 const minColumnWidth = 60; // 最小列宽
 
-function getColWidth(w: number | undefined): number{
-  return  w ? Math.max(minColumnWidth,w) : minColumnWidth;
+function getColWidth(w: number | undefined): number {
+  return w ? Math.max(minColumnWidth, w) : minColumnWidth;
 }
 
 function getColumnSearchProps<T extends object>(
@@ -129,7 +129,7 @@ export default function Home() {
   // 列头相关
   // --------------------------------------------------
   // 持久化列宽
-   const [colWidths, setColWidths] = useState<{ [key: string]: number }>(() => {
+  const [colWidths, setColWidths] = useState<{ [key: string]: number }>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem(COLUMN_WIDTH_KEY);
       if (saved) return JSON.parse(saved);
@@ -153,26 +153,27 @@ export default function Home() {
     };
 
   // 动态设置列宽和拖拽
-  const [draggedColumnKey, setDraggedColumnKey] = useState<string | null>(null);
   const columnsWithResize = columns.map((col: ColumnMeta) => ({
     ...col,
     width: getColWidth(colWidths[col.key as keyof typeof colWidths]),
     onHeaderCell: () => ({
       width: getColWidth(colWidths[col.key as keyof typeof colWidths]),
       onResize: handleResize(col.key),
-    //   // 添加拖拽属性和事件处理：拖拽列头排序
+      // 添加拖拽属性和事件处理：拖拽列头排序
       draggable: true,
       onDragStart: (e: React.DragEvent) => {
-        setDraggedColumnKey(col.key);
+        // 设置 dataTransfer 保存列 key
+        e.dataTransfer.setData("text/plain", col.key);
       },
       onDragOver: (e: React.DragEvent) => {
         e.preventDefault();
       },
       onDrop: (e: React.DragEvent) => {
-        if (draggedColumnKey && draggedColumnKey !== col.key) {
-          const fromIndex = columns.findIndex(
-            (c) => c.key === draggedColumnKey
-          );
+        e.preventDefault();
+        // 从 dataTransfer 获取拖拽的列 key
+        const draggedKey = e.dataTransfer.getData("text/plain");
+        if (draggedKey && draggedKey !== col.key) {
+          const fromIndex = columns.findIndex((c) => c.key === draggedKey);
           const toIndex = columns.findIndex((c) => c.key === col.key);
           const newCols = [...columns];
           const [moved] = newCols.splice(fromIndex, 1);
@@ -188,33 +189,33 @@ export default function Home() {
         )
       : {}),
     onCell: (record: DataRow) => ({
-        record,
-        dataIndex: col.dataIndex,
-        title: col.title,
-        editing: isEditing(record) && editingDataIndex === col.dataIndex,
-        onClick: () => {
-          if (!isEditing(record) || editingDataIndex !== col.dataIndex) {
-            edit(record, col.dataIndex);
-          }
-        },
-        style: { cursor: "pointer" },
-      }),
-      render: (text: any, record: DataRow) =>
-        isEditing(record) && editingDataIndex === col.dataIndex ? (
-          <Form.Item
-            name={col.dataIndex}
-            style={{ margin: 0 }}
-            rules={[{ required: false }]}
-          >
-            <Input
-              autoFocus
-              onPressEnter={() => save(record.key)}
-              onBlur={() => save(record.key)}
-            />
-          </Form.Item>
-        ) : (
-          text
-        ),
+      record,
+      dataIndex: col.dataIndex,
+      title: col.title,
+      editing: isEditing(record) && editingDataIndex === col.dataIndex,
+      onClick: () => {
+        if (!isEditing(record) || editingDataIndex !== col.dataIndex) {
+          edit(record, col.dataIndex);
+        }
+      },
+      style: { cursor: "pointer" },
+    }),
+    render: (text: any, record: DataRow) =>
+      isEditing(record) && editingDataIndex === col.dataIndex ? (
+        <Form.Item
+          name={col.dataIndex}
+          style={{ margin: 0 }}
+          rules={[{ required: false }]}
+        >
+          <Input
+            autoFocus
+            onPressEnter={() => save(record.key)}
+            onBlur={() => save(record.key)}
+          />
+        </Form.Item>
+      ) : (
+        text
+      ),
   }));
 
   // 详情按钮列
@@ -318,7 +319,7 @@ export default function Home() {
   const [metadata, setMetadata] = useState<Record<string, string>>({});
   const [drawerEditing, setDrawerEditing] = useState(false);
   const [drawerEditDesc, setDrawerEditDesc] = useState<string>("");
-  
+
   const [drawerEditMetadata, setDrawerEditMetadata] = useState<
     Record<string, string>
   >({});
@@ -407,98 +408,96 @@ export default function Home() {
 
   // --------------------------------------------------
   const tableContent = (
-      <Table
-        columns={columnsWithResize}
-        dataSource={data}
-        pagination={false}
-        rowKey="key"
-        scroll={{ y: "80vh" }}
-        components={components}
-      />
+    <Table
+      columns={columnsWithResize}
+      dataSource={data}
+      pagination={false}
+      rowKey="key"
+      scroll={{ y: "80vh" }}
+      components={components}
+    />
   );
   // --------------------------------------------------
   const drawerContent = (
     <Drawer
-            title="详情"
-            placement="right"
-            width={400}
-            onClose={() => setDrawerOpen(false)}
-            open={drawerOpen}
-            extra={
-              drawerEditing ? (
-                <Space>
-                  <Button type="primary" onClick={handleDrawerSave}>
-                    保存
-                  </Button>
-                  <Button onClick={() => setDrawerEditing(false)}>取消</Button>
-                </Space>
-              ) : (
-                <Button onClick={() => setDrawerEditing(true)}>编辑</Button>
-              )
-            }
-          >
-            <div style={{ marginBottom: 24 }}>
-              <div style={{ fontWeight: 600, marginBottom: 8, color: "#fff" }}>
-                描述
-              </div>
-              {drawerEditing ? (
-                <Input.TextArea
-                  value={drawerEditDesc}
-                  onChange={(e) => setDrawerEditDesc(e.target.value)}
-                  rows={3}
+      title="详情"
+      placement="right"
+      width={400}
+      onClose={() => setDrawerOpen(false)}
+      open={drawerOpen}
+      extra={
+        drawerEditing ? (
+          <Space>
+            <Button type="primary" onClick={handleDrawerSave}>
+              保存
+            </Button>
+            <Button onClick={() => setDrawerEditing(false)}>取消</Button>
+          </Space>
+        ) : (
+          <Button onClick={() => setDrawerEditing(true)}>编辑</Button>
+        )
+      }
+    >
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ fontWeight: 600, marginBottom: 8, color: "#fff" }}>
+          描述
+        </div>
+        {drawerEditing ? (
+          <Input.TextArea
+            value={drawerEditDesc}
+            onChange={(e) => setDrawerEditDesc(e.target.value)}
+            rows={3}
+          />
+        ) : (
+          <div style={{ whiteSpace: "pre-wrap", color: "#d9d9d9" }}>
+            {desc || "无描述"}
+          </div>
+        )}
+      </div>
+      <div>
+        <div style={{ fontWeight: 600, marginBottom: 8, color: "#fff" }}>
+          元数据
+        </div>
+        {drawerEditing ? (
+          <div>
+            {Object.entries(drawerEditMetadata).map(([k, v]) => (
+              <div
+                key={k}
+                style={{
+                  marginBottom: 8,
+                  display: "flex",
+                  alignItems: "center",
+                }}
+              >
+                <span style={{ color: "#d9d9d9", minWidth: 60 }}>{k}：</span>
+                <Input
+                  value={v}
+                  style={{ flex: 1 }}
+                  onChange={(e) =>
+                    setDrawerEditMetadata((md) => ({
+                      ...md,
+                      [k]: e.target.value,
+                    }))
+                  }
                 />
-              ) : (
-                <div style={{ whiteSpace: "pre-wrap", color: "#d9d9d9" }}>
-                  {desc || "无描述"}
-                </div>
-              )}
-            </div>
-            <div>
-              <div style={{ fontWeight: 600, marginBottom: 8, color: "#fff" }}>
-                元数据
               </div>
-              {drawerEditing ? (
-                <div>
-                  {Object.entries(drawerEditMetadata).map(([k, v]) => (
-                    <div
-                      key={k}
-                      style={{
-                        marginBottom: 8,
-                        display: "flex",
-                        alignItems: "center",
-                      }}
-                    >
-                      <span style={{ color: "#d9d9d9", minWidth: 60 }}>
-                        {k}：
-                      </span>
-                      <Input
-                        value={v}
-                        style={{ flex: 1 }}
-                        onChange={(e) =>
-                          setDrawerEditMetadata((md) => ({
-                            ...md,
-                            [k]: e.target.value,
-                          }))
-                        }
-                      />
-                    </div>
-                  ))}
-                </div>
-              ) : metadata && Object.keys(metadata).length > 0 ? (
-                <div>
-                  {Object.entries(metadata).map(([k, v]) => (
-                    <div key={k} style={{ marginBottom: 4 }}>
-                      <span style={{ color: "#d9d9d9" }}>{k}：</span>
-                      <span style={{ color: "#fff" }}>{v}</span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div style={{ color: "#d9d9d9" }}>无元数据</div>
-              )}
-            </div>
-          </Drawer>
-          );
+            ))}
+          </div>
+        ) : metadata && Object.keys(metadata).length > 0 ? (
+          <div>
+            {Object.entries(metadata).map(([k, v]) => (
+              <div key={k} style={{ marginBottom: 4 }}>
+                <span style={{ color: "#d9d9d9" }}>{k}：</span>
+                <span style={{ color: "#fff" }}>{v}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ color: "#d9d9d9" }}>无元数据</div>
+        )}
+      </div>
+    </Drawer>
+  );
   // --------------------------------------------------
   const addTheme = (e: React.JSX.Element) => {
     return (
