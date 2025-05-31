@@ -231,9 +231,9 @@ export default function Home() {
     title: "操作",
     key: "action",
     dataIndex: "action",
-    width: 140,
+    width: 60,
     onHeaderCell: () => ({
-      width: 140,
+      width: 60,
     }),
     onCell: (record: DataRow) => ({
       record,
@@ -424,7 +424,8 @@ export default function Home() {
       dataSource={data}
       pagination={false}
       rowKey="key"
-      scroll={{ y: "80vh" }}
+      scroll={{ x: "max-content", y:"89vh" }}
+      style={{ width: "max-content" }} 
       components={components}
       rowClassName={(record: DataRow) => {
         if (dragOverInfo && record.key === dragOverInfo.key) {
