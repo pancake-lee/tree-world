@@ -200,3 +200,76 @@ export function updateTaskField(
 
   return updateRow(data);
 }
+
+// 新增：辅助函数，从树形数据中移除指定节点
+function removeNode(data: DataRow[], key: string): { node: DataRow | null; newData: DataRow[] } {
+  for (let i = 0; i < data.length; i++) {
+    if (data[i].key === key) {
+      const node = data[i];
+      data.splice(i, 1);
+      return { node, newData: data };
+    }
+    if (data[i].children) {
+      const result = removeNode(data[i].children!, key);
+      if (result.node) {
+        data[i].children = result.newData;
+        return { node: result.node, newData: data };
+      }
+    }
+  }
+  return { node: null, newData: data };
+}
+
+// 新增：辅助函数，在树形数据中插入节点
+function insertNode(
+  data: DataRow[],
+  targetKey: string,
+  node: DataRow,
+  position: "before" | "after" | "child"
+): DataRow[] {
+  for (let i = 0; i < data.length; i++) {
+    if (data[i].key === targetKey) {
+      if (position === "before") {
+        data.splice(i, 0, node);
+      } else if (position === "after") {
+        data.splice(i + 1, 0, node);
+      } else if (position === "child") {
+        data[i].children = data[i].children || [];
+        (data[i].children ||= []).unshift(node);
+      }
+      return data;
+    }
+    if (data[i].children) {
+      data[i].children = insertNode(data[i].children || [], targetKey, node, position);
+    }
+  }
+  return data;
+}
+
+// 新增：更新行排序，根据拖拽位置调整节点顺序
+export function updateRowOrder(
+  data: DataRow[],
+  sourceKey: string,
+  targetKey: string,
+  dropY: number, // 鼠标释放时的 Y 坐标
+  targetRect: DOMRect // 目标行的矩形区域
+): DataRow[] {
+  // 根据目标区域的高度划分1/4区域
+  const topThreshold = targetRect.top + targetRect.height / 4;
+  const bottomThreshold = targetRect.bottom - targetRect.height / 4;
+  let position: "before" | "after" | "child";
+  if (dropY < topThreshold) {
+    position = "before";
+  } else if (dropY > bottomThreshold) {
+    position = "after";
+  } else {
+    position = "child";
+  }
+  
+  // 移除源节点
+  const { node, newData } = removeNode([...data], sourceKey);
+  if (!node) return data;
+  // 插入到目标位置
+  const updatedData = insertNode(newData, targetKey, node, position);
+  return updatedData;
+}
