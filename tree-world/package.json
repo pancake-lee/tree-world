@@ -4,11 +4,27 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build",
+    "build": "next build && next export",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "start-electron": "electron .",
+    "dev:electron": "concurrently \"next dev\" \"wait-on http://localhost:3000 && electron .\"",
+    "dist": "npm run build && electron-builder"
+  },
+  "build": {
+    "appId": "com.pancake.tree-world",
+    "files": [
+      "out/**/*",
+      "main.js"
+    ],
+    "directories": {
+      "output": "dist"
+    }
   },
   "dependencies": {
+    "ag-grid-community": "^33.3.1",
+    "ag-grid-react": "^33.3.1",
+    "antd": "^5.25.3",
     "next": "15.3.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
