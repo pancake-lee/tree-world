@@ -4,7 +4,7 @@
 // 使用暗色主题
 // 通过fetchTableMetaAndData获取列定义和数据
 // 支持列宽拖拽调整，支持列拖拽调整排序
-// 支持列搜索过滤
+// 支持列搜索过滤，根据ColumnMeta.enableSearch字段来开启
 // 每个单元格支持编辑，调用updateTaskField保存字段的值
 // 支持详情抽屉，展示表格列之外的数据，同样支持编辑
 
@@ -147,6 +147,9 @@ export default function Home() {
       }));
     };
 
+  // 在组件内，新增拖拽排序所需的状态
+  const [draggedColumnKey, setDraggedColumnKey] = useState<string | null>(null);
+
   // 动态设置列宽和拖拽
   const columnsWithResize = columns.map((col: ColumnMeta) => ({
     ...col,
@@ -154,11 +157,30 @@ export default function Home() {
     onHeaderCell: () => ({
       width: colWidths[col.key as keyof typeof colWidths],
       onResize: handleResize(col.key),
+      // 添加拖拽属性和事件处理：拖拽列头排序
+      draggable: true,
+      onDragStart: (e: React.DragEvent) => {
+        setDraggedColumnKey(col.key);
+      },
+      onDragOver: (e: React.DragEvent) => {
+        e.preventDefault();
+      },
+      onDrop: (e: React.DragEvent) => {
+        if (draggedColumnKey && draggedColumnKey !== col.key) {
+          const fromIndex = columns.findIndex(c => c.key === draggedColumnKey);
+          const toIndex = columns.findIndex(c => c.key === col.key);
+          const newCols = [...columns];
+          const [moved] = newCols.splice(fromIndex, 1);
+          newCols.splice(toIndex, 0, moved);
+          setColumns(newCols);
+        }
+      }
     }),
-    ...getColumnSearchProps<DataRow>(col.dataIndex as keyof DataRow, col.title as string),
+    ...(col.enableSearch ? getColumnSearchProps<DataRow>(col.dataIndex as keyof DataRow, col.title as string) : {}),
   }));
 
   // 详情按钮列
+  // 修改详情按钮列 onCell，移除 editable 和 editing 属性，避免将非布尔值属性传递到 DOM
   columnsWithResize.push({
     title: "操作",
     key: "action",
@@ -169,10 +191,9 @@ export default function Home() {
     }),
     onCell: (record: DataRow) => ({
       record,
-      editable: false,
       dataIndex: "action",
       title: "操作",
-      editing: false,
+      // 删除了 editable 和 editing 属性
       onClick: () => {},
       style: { cursor: "pointer" },
     }),
