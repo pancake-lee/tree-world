@@ -104,6 +104,13 @@ export default function Home() {
   const [drawerEditMetadata, setDrawerEditMetadata] = useState<Record<string, string>>({});
   const [form] = Form.useForm();
 
+  // --------------------------------------------------
+  // 只在客户端渲染 Table，避免 SSR/CSR 不一致
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   useEffect(() => {
     // 调用 http 接口获取列定义和数据
     fetchTableMetaAndData().then((res) => {
@@ -112,6 +119,9 @@ export default function Home() {
     });
   }, []);
 
+  // --------------------------------------------------
+  // 列头相关
+  // --------------------------------------------------
   // 持久化列宽
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -119,6 +129,7 @@ export default function Home() {
     }
   }, [colWidths]);
 
+  // 设置列宽
   const handleResize =
     (dataIndex: string) =>
     (_: any, { size }: { size: { width: number } }) => {
@@ -129,7 +140,7 @@ export default function Home() {
     };
 
   // 动态设置列宽和拖拽
-  const columnsWithResizeBase = columns.map((col: ColumnMeta) => ({
+  const columnsWithResize = columns.map((col: ColumnMeta) => ({
     ...col,
     width: colWidths[col.key as keyof typeof colWidths],
     onHeaderCell: () => ({
@@ -139,6 +150,41 @@ export default function Home() {
     ...getColumnSearchProps<DataRow>(col.dataIndex as keyof DataRow, col.title as string),
   }));
 
+  // 详情按钮列
+  columnsWithResize.push({
+    title: "操作",
+    key: "action",
+    dataIndex: "action",
+    width: 140,
+    onHeaderCell: () => ({
+      width: 140,
+    }),
+    onCell: (record: DataRow) => ({
+      record,
+      editable: false,
+      dataIndex: "action",
+      title: "操作",
+      editing: false,
+      onClick: () => {},
+      style: { cursor: "pointer" },
+    }),
+    render: (_: any, record: DataRow) =>
+      isEditing(record) ? (
+        <span>
+          <a onClick={() => save(record.key)} style={{ marginRight: 8 }}>保存</a>
+          <a onClick={cancel} style={{ marginRight: 8 }}>取消</a>
+          <a onClick={() => showDrawer(record)}>详情</a>
+        </span>
+      ) : (
+        <>
+          <a onClick={() => showDrawer(record)}>详情</a>
+        </>
+      ),
+  });
+
+  // --------------------------------------------------
+  // 单元格相关
+  // --------------------------------------------------
   const components = {
     header: {
       cell: (props: any) => {
@@ -191,13 +237,10 @@ export default function Home() {
     },
   };
 
-  // 只在客户端渲染 Table，避免 SSR/CSR 不一致
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // 选中行展示描述和metadata（详情按钮触发，不影响表格编辑状态）
+  // --------------------------------------------------
+  // 单元格相关
+  // --------------------------------------------------
+  // 详情按钮展示描述和metadata（详情按钮触发，不影响表格编辑状态）
   const showDrawer = (record: DataRow) => {
     setDesc(record.desc || "");
     setDrawerEditDesc(record.desc || "");
@@ -252,81 +295,9 @@ export default function Home() {
     }
   };
 
-  // 列定义，支持单元格点击编辑
-  const columnsWithResize = columns.map((col: ColumnMeta) => {
-    const editable = true;
-    return {
-      ...col,
-      width: colWidths[col.key as keyof typeof colWidths],
-      onHeaderCell: () => ({
-        width: colWidths[col.key as keyof typeof colWidths],
-        onResize: handleResize(col.key),
-      }),
-      ...getColumnSearchProps<DataRow>(col.dataIndex as keyof DataRow, col.title as string),
-      onCell: (record: DataRow) => ({
-        record,
-        editable,
-        dataIndex: col.dataIndex,
-        title: col.title,
-        editing: isEditing(record) && editingDataIndex === col.dataIndex,
-        onClick: () => {
-          if (!isEditing(record) || editingDataIndex !== col.dataIndex) {
-            edit(record, col.dataIndex);
-          }
-        },
-        style: { cursor: "pointer" },
-      }),
-      render: (text: any, record: DataRow) =>
-        isEditing(record) && editingDataIndex === col.dataIndex ? (
-          <Form.Item
-            name={col.dataIndex}
-            style={{ margin: 0 }}
-            rules={[{ required: false }]}
-          >
-            <Input
-              autoFocus
-              onPressEnter={() => save(record.key)}
-              onBlur={() => save(record.key)}
-            />
-          </Form.Item>
-        ) : (
-          text
-        ),
-    };
-  });
-
-  // 编辑按钮列和详情按钮列
-  columnsWithResize.push({
-    title: "操作",
-    key: "action",
-    dataIndex: "action",
-    width: 140,
-    onHeaderCell: () => ({
-      width: 140,
-    }),
-    onCell: (record: DataRow) => ({
-      record,
-      editable: false,
-      dataIndex: "action",
-      title: "操作",
-      editing: false,
-      onClick: () => {},
-      style: { cursor: "pointer" },
-    }),
-    render: (_: any, record: DataRow) =>
-      isEditing(record) ? (
-        <span>
-          <a onClick={() => save(record.key)} style={{ marginRight: 8 }}>保存</a>
-          <a onClick={cancel} style={{ marginRight: 8 }}>取消</a>
-          <a onClick={() => showDrawer(record)}>详情</a>
-        </span>
-      ) : (
-        <>
-          <a onClick={() => showDrawer(record)}>详情</a>
-        </>
-      ),
-  });
-
+  // --------------------------------------------------
+  // 抽屉相关
+  // --------------------------------------------------
   // 抽屉编辑
   const handleDrawerSave = () => {
     // 更新data
@@ -353,6 +324,7 @@ export default function Home() {
     message.success("保存成功");
   };
 
+  // --------------------------------------------------
   return (
     <div style={{ height: "100vh", width: "100vw", padding: 16 }}>
       {mounted && (

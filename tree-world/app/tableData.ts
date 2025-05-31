@@ -11,8 +11,8 @@ export type ColumnMeta = {
 export type DataRow = {
   key: string;
   [key: string]: any;
-  desc?: string;
-  metadata?: Record<string, string>;
+  desc: string;
+  metadata: Record<string, string>;
   children?: DataRow[];
 };
 
