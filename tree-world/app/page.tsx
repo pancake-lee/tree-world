@@ -2,56 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { Table, Input, Button, Space } from "antd";
-import type { ColumnsType, ColumnType } from "antd/es/table";
-import { SearchOutlined } from "@ant-design/icons";
+import { ColumnMeta, DataRow, fetchTableMetaAndData } from "./tableData";
 import "antd/dist/reset.css";
-
-type DataRow = {
-  key: string;
-  name: string;
-  size: string;
-  type: string;
-  children?: DataRow[];
-};
-
-// 生成500条树形数据：10*10*5
-function generateData(): DataRow[] {
-  const data: DataRow[] = [];
-  let count = 0;
-  for (let i = 0; i < 10; i++) {
-    const first: DataRow = {
-      key: `node-${i}`,
-      name: `一级节点${i + 1}`,
-      size: `${Math.floor(Math.random() * 100) + 1}KB`,
-      type: "folder",
-      children: [],
-    };
-    for (let j = 0; j < 10; j++) {
-      const second: DataRow = {
-        key: `node-${i}-${j}`,
-        name: `二级节点${i + 1}-${j + 1}`,
-        size: `${Math.floor(Math.random() * 100) + 1}KB`,
-        type: "folder",
-        children: [],
-      };
-      for (let k = 0; k < 5; k++) {
-        second.children!.push({
-          key: `node-${i}-${j}-${k}`,
-          name: `三级节点${i + 1}-${j + 1}-${k + 1}`,
-          size: `${Math.floor(Math.random() * 100) + 1}KB`,
-          type: "file",
-        });
-        count++;
-      }
-      first.children!.push(second);
-      count++;
-    }
-    data.push(first);
-    count++;
-  }
-  // count === 10 + 100 + 500 = 610，但 Table 只展示叶子和分支节点
-  return data;
-}
+import { SearchOutlined } from "@ant-design/icons";
+import type { ColumnType } from "antd/es/table";
 
 const COLUMN_WIDTH_KEY = "tree-table-column-widths";
 
@@ -133,6 +87,7 @@ function getDefaultWidths() {
 
 export default function Home() {
   const [data, setData] = useState<DataRow[]>([]);
+  const [columns, setColumns] = useState<ColumnMeta[]>([]);
   const [colWidths, setColWidths] = useState<{ [key: string]: number }>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem(COLUMN_WIDTH_KEY);
@@ -142,7 +97,11 @@ export default function Home() {
   });
 
   useEffect(() => {
-    setData(generateData());
+    // 调用 http 接口获取列定义和数据
+    fetchTableMetaAndData().then((res) => {
+      setColumns(res.columns);
+      setData(res.data);
+    });
   }, []);
 
   // 持久化列宽
@@ -161,65 +120,17 @@ export default function Home() {
       }));
     };
 
-  // 列定义，带可调整宽度
-  const columns: ColumnsType<DataRow> = [
-    {
-      title: "名称",
-      dataIndex: "name",
-      key: "name",
-      width: colWidths.name,
-      sorter: (a, b) => a.name.localeCompare(b.name),
-      ...getColumnSearchProps<DataRow>("name", "名称"),
-      onHeaderCell: () => ({
-        width: colWidths.name,
-        onResize: handleResize("name"),
-      }),
-    },
-    {
-      title: "大小",
-      dataIndex: "size",
-      key: "size",
-      width: colWidths.size,
-      sorter: (a, b) => {
-        const getNum = (s: string) => parseInt(s.replace("KB", ""), 10);
-        return getNum(a.size) - getNum(b.size);
-      },
-      filters: [
-        { text: "<50KB", value: "lt50" },
-        { text: "≥50KB", value: "gte50" },
-      ],
-      onFilter: (value, record) => {
-        const num = parseInt(record.size.replace("KB", ""), 10);
-        if (value === "lt50") return num < 50;
-        if (value === "gte50") return num >= 50;
-        return true;
-      },
-      ...getColumnSearchProps<DataRow>("size", "大小"),
-      onHeaderCell: () => ({
-        width: colWidths.size,
-        onResize: handleResize("size"),
-      }),
-    },
-    {
-      title: "类型",
-      dataIndex: "type",
-      key: "type",
-      width: colWidths.type,
-      sorter: (a, b) => a.type.localeCompare(b.type),
-      filters: [
-        { text: "文件夹", value: "folder" },
-        { text: "文件", value: "file" },
-      ],
-      onFilter: (value, record) => record.type === value,
-      ...getColumnSearchProps<DataRow>("type", "类型"),
-      onHeaderCell: () => ({
-        width: colWidths.type,
-        onResize: handleResize("type"),
-      }),
-    },
-  ];
+  // 动态设置列宽和拖拽
+  const columnsWithResize = columns.map((col: ColumnMeta) => ({
+    ...col,
+    width: colWidths[col.key as keyof typeof colWidths],
+    onHeaderCell: () => ({
+      width: colWidths[col.key as keyof typeof colWidths],
+      onResize: handleResize(col.key),
+    }),
+    ...getColumnSearchProps<DataRow>(col.dataIndex as keyof DataRow, col.title as string),
+  }));
 
-  // 需要为 Table 组件传递 components 以支持拖拽调整列宽
   const components = {
     header: {
       cell: (props: any) => {
@@ -249,7 +160,6 @@ export default function Home() {
               }}
               onMouseDown={(e) => {
                 e.preventDefault();
-                // 用 clientX 替代 screenX，避免受显示缩放影响
                 const startX = e.clientX;
                 const startWidth = width;
                 const onMouseMove = (moveEvent: MouseEvent) => {
@@ -283,7 +193,7 @@ export default function Home() {
     <div style={{ height: "100vh", width: "100vw", padding: 16 }}>
       {mounted && (
         <Table
-          columns={columns}
+          columns={columnsWithResize}
           dataSource={data}
           pagination={false}
           rowKey="key"
