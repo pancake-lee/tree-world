@@ -23,8 +23,9 @@ import {
 import {
   ColumnMeta,
   DataRow,
-  fetchTableMetaAndData,
   updateRowOrder,
+  getTableColumns,
+  getTaskList,
 } from "./tableData";
 import "antd/dist/reset.css";
 import { SearchOutlined } from "@ant-design/icons";
@@ -125,9 +126,11 @@ export default function Home() {
 
   useEffect(() => {
     // 调用 http 接口获取列定义和数据
-    fetchTableMetaAndData().then((res) => {
-      setColumns(res.columns);
-      setData(res.data);
+    getTableColumns().then((res) => {
+      setColumns(res);
+    });
+    getTaskList().then((res) => {
+        setData(res);
     });
   }, []);
 

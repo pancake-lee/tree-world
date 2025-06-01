@@ -1,4 +1,8 @@
-import type { ColumnsType } from "antd/es/table";
+import {
+    TaskCURDApi,
+    Configuration,
+    ApiGetTaskListResponse
+} from '../api';
 
 // 列定义结构（仅包含列名，后端返回）
 export type ColumnMeta = {
@@ -17,160 +21,15 @@ export type DataRow = {
   children?: DataRow[];
 };
 
-// 获取列定义和数据（后续实现 http 请求）
-export async function fetchTableMetaAndData(): Promise<{
-  columns: ColumnMeta[];
-  data: DataRow[];
-}> {
-  // TODO: 调用 http 接口获取 columns 和 data
-  // 目前返回模拟数据
-
+export async function getTableColumns(): Promise<ColumnMeta[]> {
   const columns: ColumnMeta[] = [
     { title: "任务", dataIndex: "task", key: "task", enableSearch: true },
     { title: "状态", dataIndex: "status", key: "status" },
     { title: "估时", dataIndex: "estimate", key: "estimate" },
     { title: "开始", dataIndex: "start", key: "start" },
     { title: "结束", dataIndex: "end", key: "end" },
-    // 不包含desc
   ];
-
-  // 随机生成状态和时间
-  const statusList = ["未开始", "进行中", "已完成", "已延期"];
-  function randomStatus() {
-    return statusList[Math.floor(Math.random() * statusList.length)];
-  }
-  function randomEstimate() {
-    return `${Math.floor(Math.random() * 8) + 1}h`;
-  }
-  function randomDate(offset = 0) {
-    const d = new Date(
-      Date.now() + offset * 86400000 + Math.floor(Math.random() * 86400000)
-    );
-    return d.toISOString().slice(0, 10);
-  }
-  function randomDesc() {
-    const pool = [
-      "这是一个测试任务。",
-      "需要与前端协作。",
-      "优先级较高。",
-      "请及时完成。",
-      "有风险需评估。",
-      "自动生成的描述内容。",
-      "涉及多个模块。",
-      "请联系负责人。",
-      "预计本周完成。",
-      "等待资源。",
-    ];
-    return pool[Math.floor(Math.random() * pool.length)];
-  }
-  function randomMetadata() {
-    return {
-      owner: ["张三", "李四", "王五", "赵六"][Math.floor(Math.random() * 4)],
-      priority: ["高", "中", "低"][Math.floor(Math.random() * 3)],
-      tag: ["A", "B", "C", "D"][Math.floor(Math.random() * 4)],
-      note: "元数据示例",
-    };
-  }
-
-  // 构造树形结构，部分节点有children
-  const data: DataRow[] = [];
-  let keyCount = 0;
-  for (let i = 0; i < 5; i++) {
-    const first: DataRow = {
-      key: `task-${keyCount++}`,
-      task: `项目${i + 1}`,
-      status: randomStatus(),
-      estimate: randomEstimate(),
-      start: randomDate(i),
-      end: randomDate(i + 2),
-      desc: randomDesc(),
-      metadata: randomMetadata(),
-      children: [],
-    };
-    for (let j = 0; j < 3; j++) {
-      const second: DataRow = {
-        key: `task-${keyCount++}`,
-        task: `模块${i + 1}-${j + 1}`,
-        status: randomStatus(),
-        estimate: randomEstimate(),
-        start: randomDate(i + j),
-        end: randomDate(i + j + 2),
-        desc: randomDesc(),
-        metadata: randomMetadata(),
-        children: [],
-      };
-      for (let k = 0; k < 2; k++) {
-        const third: DataRow = {
-          key: `task-${keyCount++}`,
-          task: `子任务${i + 1}-${j + 1}-${k + 1}`,
-          status: randomStatus(),
-          estimate: randomEstimate(),
-          start: randomDate(i + j + k),
-          end: randomDate(i + j + k + 1),
-          desc: randomDesc(),
-          metadata: randomMetadata(),
-        };
-        second.children!.push(third);
-      }
-      first.children!.push(second);
-    }
-    data.push(first);
-  }
-
-  // 添加一些无children的一级节点
-  for (let i = 0; i < 10; i++) {
-    data.push({
-      key: `task-${keyCount++}`,
-      task: `独立任务${i + 1}`,
-      status: randomStatus(),
-      estimate: randomEstimate(),
-      start: randomDate(i + 5),
-      end: randomDate(i + 6),
-      desc: randomDesc(),
-      metadata: randomMetadata(),
-    });
-  }
-
-  // 添加一些二级节点（父节点为前面某个一级节点）
-  for (let i = 0; i < 10; i++) {
-    const parentIdx = i % 5;
-    data[parentIdx].children!.push({
-      key: `task-${keyCount++}`,
-      task: `补充任务${parentIdx + 1}-${i + 1}`,
-      status: randomStatus(),
-      estimate: randomEstimate(),
-      start: randomDate(i + 7),
-      end: randomDate(i + 8),
-      desc: randomDesc(),
-      metadata: randomMetadata(),
-    });
-  }
-
-  // 保证总数约50条
-  while (countData(data) < 50) {
-    data.push({
-      key: `task-${keyCount++}`,
-      task: `临时任务${keyCount}`,
-      status: randomStatus(),
-      estimate: randomEstimate(),
-      start: randomDate(),
-      end: randomDate(1),
-      desc: randomDesc(),
-      metadata: randomMetadata(),
-    });
-  }
-
-  return { columns, data };
-}
-
-// 递归统计树形数据总数
-function countData(arr: DataRow[]): number {
-  let count = 0;
-  for (const item of arr) {
-    count++;
-    if (item.children) count += countData(item.children);
-  }
-  return count;
+  return  columns ;
 }
 
 // 修改指定任务的字段值
@@ -272,4 +131,53 @@ export function updateRowOrder(
   // 插入到目标位置
   const updatedData = insertNode(newData, targetKey, node, position);
   return updatedData;
+}
+
+
+// 创建任务
+
+// 删除任务
+
+// 更新任务
+// 以id为唯一标识符，更新任务其他字段值
+
+// 获取任务列表
+// 并且根据ParentId转换成DataRow为元素的树形结构
+// 其中后端接口提供的metadata字段为字符串，需要转换为字典
+export async function getTaskList(): Promise<DataRow[]> {
+    const configuration = new Configuration();
+    configuration.basePath = 'http://127.0.0.1:8000';
+    const apiInstance = new TaskCURDApi(configuration);
+
+    const { status, data } = await apiInstance.taskCURDGetTaskList();
+    if (status !== 200) {
+      throw new Error(`GetTaskList failed with status: ${status}`);
+    }
+    // 数据明确转换为 ApiGetTaskListResponse 类型
+    const response = data as ApiGetTaskListResponse;
+    const flatList: any[] = response.taskList || [];
+    flatList.forEach(item => {
+        if (item.metadata && typeof item.metadata === 'string') {
+            try {
+                item.metadata = JSON.parse(item.metadata);
+            } catch (e) {
+                item.metadata = {};
+            }
+        }
+        item.key = `task-${item.iD}`;
+    });
+    const tree: DataRow[] = [];
+    const lookup: { [id: number]: DataRow } = {};
+    flatList.forEach(item => {
+        lookup[item.iD] = item;
+        item.children = [];
+    });
+    flatList.forEach(item => {
+        if (item.parentID && lookup[item.parentID]) {
+            lookup[item.parentID]?.children?.push(item);
+        } else {
+            tree.push(item);
+        }
+    });
+    return tree;
 }
