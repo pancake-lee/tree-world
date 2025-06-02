@@ -34,6 +34,12 @@ export interface ApiTaskInfo {
     'parentID'?: number;
     /**
      * 
+     * @type {number}
+     * @memberof ApiTaskInfo
+     */
+    'prevID'?: number;
+    /**
+     * 
      * @type {string}
      * @memberof ApiTaskInfo
      */

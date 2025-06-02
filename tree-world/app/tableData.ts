@@ -2,49 +2,53 @@ import {
     TaskCURDApi,
     Configuration,
     ApiAddTaskRequest,
-    ApiAddTaskResponse, 
+    ApiAddTaskResponse,
     ApiUpdateTaskRequest,
-    ApiUpdateTaskResponse, 
-    ApiGetTaskListResponse
-} from '../api';
+    ApiUpdateTaskResponse,
+    ApiGetTaskListResponse,
+} from "../api";
 
 // 列定义结构（仅包含列名，后端返回）
 export type ColumnMeta = {
-  title: string;
-  dataIndex: string;
-  key: string;
-  enableSearch?: boolean; // 是否启用搜索
+    title: string;
+    dataIndex: string;
+    key: string;
+    enableSearch?: boolean; // 是否启用搜索
 };
 
 // 行数据结构（后端返回）
 export type DataRow = {
-  iD : number; // 添加 iD 字段
-  key: string;
-  [key: string]: any;
-  desc: string;
-  metadata: Record<string, string>;
-  children?: DataRow[];
+    key: string;
+
+    id: number; // 添加 iD 字段
+    parentID : number; // 父节点ID
+    prevID: number; // 前一个节点ID
+
+    [key: string]: any;
+    children?: DataRow[];
 };
 
 export async function getTableColumns(): Promise<ColumnMeta[]> {
-  const columns: ColumnMeta[] = [
-    { title: "任务", dataIndex: "task", key: "task", enableSearch: true },
-    { title: "状态", dataIndex: "status", key: "status" },
-    { title: "估时", dataIndex: "estimate", key: "estimate" },
-    { title: "开始", dataIndex: "start", key: "start" },
-    { title: "结束", dataIndex: "end", key: "end" },
-  ];
-  return  columns ;
+    const columns: ColumnMeta[] = [
+        { title: "任务", dataIndex: "task", key: "task", enableSearch: true },
+        { title: "状态", dataIndex: "status", key: "status" },
+        { title: "估时", dataIndex: "estimate", key: "estimate" },
+        { title: "开始", dataIndex: "start", key: "start" },
+        { title: "结束", dataIndex: "end", key: "end" },
+    ];
+    return columns;
 }
 
 // 新增：辅助函数，从树形数据中移除指定节点
 // 改写 removeNode 为异步函数，调用 deleteTaskByIDList 删除后端数据，成功后再更新表格数据
-async function removeNode(data: DataRow[], key: string
+async function removeNode(
+    data: DataRow[],
+    key: string
 ): Promise<{ delNode: DataRow | null; newData: DataRow[] }> {
     for (let i = 0; i < data.length; i++) {
         if (data[i].key === key) {
             try {
-                await deleteTaskByIDList([data[i].iD]);
+                await deleteTaskByIDList([data[i].id]);
                 const node = data[i];
                 data.splice(i, 1);
                 return { delNode: node, newData: data };
@@ -66,51 +70,71 @@ async function removeNode(data: DataRow[], key: string
 
 // 改写后的辅助函数，在树形数据中插入节点，调用 createTask 同步后端数据，返回更新后的 data 以及创建的 node
 export async function insertNode(
-  data: DataRow[],
-  targetKey: string,
-  node: DataRow,
-  position: "before" | "after" | "child"
-): Promise<{addNode: DataRow| null; newData: DataRow[] }> {
-  for (let i = 0; i < data.length; i++) {
-    if (data[i].key === targetKey) {
-      // 根据插入位置更新 node 的 parentID
-      if (position === "child") {
-        node.parentID = data[i].iD;
-      } else {
-        node.parentID = data[i].parentID;
-      }
-      // 调用 createTask 同步后端数据，并检查调用结果
-      let newNode: DataRow;
-      try {
-        const createdNode = await createTask(node);
-        if (!createdNode) {
-          // createTask 返回 undefined，表示失败：不改变表格数据
-          return {addNode:null, newData: data };
+    data: DataRow[],
+    targetKey: string,
+    node: DataRow,
+    position: "before" | "after" | "child"
+): Promise<{ addNode: DataRow | null; newData: DataRow[] }> {
+    for (let i = 0; i < data.length; i++) {
+        if (data[i].key === targetKey) {
+            // 根据插入位置更新 node 的 parentID
+            if (position === "child") {
+                node.parentID = data[i].id;
+            } else {
+                node.parentID = data[i].parentID;
+            }
+            // 调用 createTask 同步后端数据，并检查调用结果
+            let newNode: DataRow;
+            try {
+                const createdNode = await createTask(node);
+                if (!createdNode) {
+                    // createTask 返回 undefined，表示失败：不改变表格数据
+                    return { addNode: null, newData: data };
+                }
+                newNode = createdNode;
+            } catch (error) {
+                // createTask 调用失败，不更新本地数据
+                return { addNode: null, newData: data };
+            }
+            if (position === "before") {
+                data.splice(i, 0, newNode);
+            } else if (position === "after") {
+                data.splice(i + 1, 0, newNode);
+            } else if (position === "child") {
+                data[i].children = data[i].children || [];
+                (data[i].children ||= []).unshift(newNode);
+            }
+            return { addNode: newNode, newData: data };
         }
-        newNode = createdNode;
-      } catch (error) {
-        // createTask 调用失败，不更新本地数据
-        return {addNode:null, newData: data };
-      }
-      if (position === "before") {
-        data.splice(i, 0, newNode);
-      } else if (position === "after") {
-        data.splice(i + 1, 0, newNode);
-      } else if (position === "child") {
-        data[i].children = data[i].children || [];
-        (data[i].children ||= []).unshift(newNode);
-      }
-      return {  addNode: newNode ,newData: data};
+        if (data[i].children) {
+            const result = await insertNode(
+                data[i].children!,
+                targetKey,
+                node,
+                position
+            );
+            if (result.addNode) {
+                data[i].children = result.newData;
+                return { newData: data, addNode: result.addNode };
+            }
+        }
     }
-    if (data[i].children) {
-      const result = await insertNode(data[i].children!, targetKey, node, position);
-      if (result.addNode) {
-        data[i].children = result.newData;
-        return { newData: data, addNode: result.addNode };
-      }
+    return { addNode: null, newData: data };
+}
+
+function getRowByKey(data: DataRow[], key: string): DataRow | null {
+    for (let i = 0; i < data.length; i++) {
+        if (data[i].key === key) {
+            return data[i];
+        }
+        if (data[i].children) {
+            const childRow = getRowByKey(data[i].children!, key);
+            if (childRow) {
+                return childRow;
+            }
+        }
     }
-  }
-  return {addNode:null, newData: data };
+    return null;
 }
 
 // 新增：更新行排序，根据拖拽位置调整节点顺序
@@ -121,54 +145,75 @@ export async function updateRowOrder(
     dropY: number, // 鼠标释放时的 Y 坐标
     targetRect: DOMRect // 目标行的矩形区域
 ): Promise<DataRow[]> {
+    const srcRow = getRowByKey(data, sourceKey);
+    if (!srcRow) {
+        console.warn(`Row with key ${sourceKey} not found.`);
+        return data; // 如果找不到源行，直接返回原数据
+    }
+    const dstRow = getRowByKey(data, targetKey);
+    if (!dstRow) {
+        console.warn(`Row with key ${targetKey} not found.`);
+        return data; // 如果找不到目标行，直接返回原数据
+    }
+
     // 根据目标区域的高度划分1/4区域
     const topThreshold = targetRect.top + targetRect.height / 4;
     const bottomThreshold = targetRect.bottom - targetRect.height / 4;
-    let position: "before" | "after" | "child";
     if (dropY < topThreshold) {
-        position = "before";
+        // src移动到dst上面
+        srcRow.parentID = dstRow.parentID;
+        srcRow.prevID = dstRow.prevID;
+        dstRow.prevID = srcRow.id;
+
+        // 互换的情况是，last(1) - dst(2)(p1) - src(3)(p2)
+        // 按上面代码，last(1) - src(3)(p1) dst(2)(p3) 
+
+        await updateTask(dstRow);
     } else if (dropY > bottomThreshold) {
-        position = "after";
+        // src移动到dst下面
+        srcRow.parentID = dstRow.parentID;
+        srcRow.prevID = dstRow.id;
     } else {
-        position = "child";
+        // src移动到dst里面面
+        srcRow.parentID = dstRow.id;
+        srcRow.prevID = -1;
     }
-  
-    // 调用异步 removeNode 进行后端删除与本地数据更新
-    const tmpData = [...data];
-    const { delNode: dNode,newData: dData } = await removeNode(tmpData, sourceKey);
-    if (!dNode) return data;
-    const { addNode: aNode,newData: aData } = await insertNode(dData, targetKey, dNode, position);
-    if (!aNode) return data;
-    return aData;
+
+    await updateTask(srcRow);
+
+    return getTaskList(); // 刷新任务列表
 }
 
 // --------------------------------------------------
 // 调用后端接口，并且转换表格数据
 // --------------------------------------------------
 // dto to vo
-import { ApiTaskInfo } from '../api'; // 添加 ApiTaskInfo 的引入
+import { ApiTaskInfo } from "../api"; // 添加 ApiTaskInfo 的引入
 
-export function DTO2VO_ApiTaskInfo(dto: ApiTaskInfo|undefined): DataRow |undefined{
-    if (!dto){
-        return undefined
+export function DTO2VO_ApiTaskInfo(
+    dto: ApiTaskInfo | undefined
+): DataRow | undefined {
+    if (!dto) {
+        return undefined;
     }
 
     let metadata: Record<string, string> = {};
     try {
-        metadata = dto.metadata?JSON.parse(dto.metadata):{};
+        metadata = dto.metadata ? JSON.parse(dto.metadata) : {};
     } catch (e) {
         metadata = {};
     }
     return {
         key: `task-${dto.iD}`,
-        iD: dto.iD? dto.iD : 0, 
-        parentID: dto.parentID,
+        id: dto.iD ? dto.iD : 0,
+        parentID: dto.parentID||0,
+        prevID: dto.prevID||0,
         task: dto.task,
         status: dto.status,
         estimate: dto.estimate,
         start: dto.start,
         end: dto.end,
-        desc: dto.desc?dto.desc:'',
+        desc: dto.desc||"",
         metadata,
     };
 }
@@ -176,8 +221,9 @@ export function DTO2VO_ApiTaskInfo(dto: ApiTaskInfo|undefined): DataRow |undefin
 // vo to dto
 export function VO2DTO_ApiTaskInfo(vo: Partial<DataRow>): ApiTaskInfo {
     return {
-        iD: vo.iD,
+        iD: vo.id,
         parentID: vo.parentID,
+        prevID: vo.prevID,
         task: vo.task,
         status: vo.status,
         estimate: vo.estimate,
@@ -188,10 +234,8 @@ export function VO2DTO_ApiTaskInfo(vo: Partial<DataRow>): ApiTaskInfo {
     };
 }
 
-
-
 const configuration = new Configuration();
-configuration.basePath = 'http://127.0.0.1:8000';
+configuration.basePath = "http://127.0.0.1:8000";
 const apiInstance = new TaskCURDApi(configuration);
 
 // 获取任务列表
@@ -200,7 +244,7 @@ const apiInstance = new TaskCURDApi(configuration);
 export async function getTaskList(): Promise<DataRow[]> {
     const { status, data } = await apiInstance.taskCURDGetTaskList();
     if (status !== 200) {
-      throw new Error(`GetTaskList failed with status: ${status}`);
+        throw new Error(`GetTaskList failed with status: ${status}`);
     }
     const response = data as ApiGetTaskListResponse;
     if (!response || !response.taskList) {
@@ -209,36 +253,88 @@ export async function getTaskList(): Promise<DataRow[]> {
 
     // 利用 DTO2VO_ApiTaskInfo 进行转换
     const dataRows: DataRow[] = response.taskList
-      .map(dto => DTO2VO_ApiTaskInfo(dto))
-      .filter(item => item !== undefined) as DataRow[];
-      
-      // 将扁平化的 dataRows 转换为树形结构
+        .map((dto) => DTO2VO_ApiTaskInfo(dto))
+        .filter((item) => item !== undefined) as DataRow[];
+
+    // 将扁平化的 dataRows 转换为树形结构
     const tree: DataRow[] = [];
     const lookup: { [id: number]: DataRow } = {};
-    dataRows.forEach(item => {
-        lookup[item.iD] = item;
+    dataRows.forEach((item) => {
+        lookup[item.id] = item;
         item.children = [];
     });
-    dataRows.forEach(item => {
+    dataRows.forEach((item) => {
         if (item.parentID && lookup[item.parentID]) {
             lookup[item.parentID].children?.push(item);
         } else {
             tree.push(item);
         }
     });
-    return tree;
+    // 递归排序，规则：
+    // - 若节点的 prevID 缺失或为-1时，视为0；
+    // - prevID为0的节点排在最前面，都为0的节点按字符串排序；
+    // - prevID大于0的节点，查询id==prevID的节点，按链表的形式排序
+    function sortTree(nodes: DataRow[]): DataRow[] {
+        nodes.forEach((node) => {
+            if (node.children && node.children.length > 0) {
+                node.children = sortTree(node.children);
+            }
+        });
+            
+        return sortByLinkedList(nodes)
+    }
+    return sortTree(tree);
 }
 
-// 创建任务: taskCURDAddTask
-export async function createTask(newTask: Partial<DataRow>): Promise<DataRow|undefined>{
+function sortByLinkedList(nodes: DataRow[]): DataRow[] {
+  // 构造链表排序：依据 prevID 链接，若 prevID<=0 则视为头节点
+  const included = new Set<number>();
+  let sortedNodes: DataRow[] = [];
 
+  // 取出所有头节点，并按任务名称排序
+  const heads = nodes.filter(n => n.prevID <= 0);
+  nodes.forEach(current => {
+    if (!nodes.find(n => n.id === current!.prevID) && 
+        !heads.find(h => h.id === current!.id)) {
+        // 找不到 prevID 对应的节点，说明是头节点
+        // 发生在头节点移动走了的时候
+        heads.push(current);
+    }
+  })
+  heads.sort((a, b) => (a.task || "").localeCompare(b.task || ""));
+
+  // 对每个头节点构造链表
+  for (const head of heads) {
+    const chain: DataRow[] = [];
+    let current: DataRow | undefined = head;
+    while (current) {
+      chain.push(current);
+      included.add(current.id);
+      // 找到下一个节点：在 nodes 中查找 prevID 等于 current.id 且未包含的节点
+      const next = nodes.find(n => n.prevID === current!.id && !included.has(n.id));
+      current = next;
+    }
+    sortedNodes = sortedNodes.concat(chain);
+  }
+
+  // 对于未被包含的节点，按任务名称排序后追加
+  const remaining = nodes.filter(n => !included.has(n.id));
+  remaining.sort((a, b) => (a.task || "").localeCompare(b.task || ""));
+  return sortedNodes.concat(remaining);
+}
+
+
+// 创建任务: taskCURDAddTask
+export async function createTask(
+    newTask: Partial<DataRow>
+): Promise<DataRow | undefined> {
     const apiAddTaskRequest: ApiAddTaskRequest = {
-        task: VO2DTO_ApiTaskInfo(newTask)
-        }
+        task: VO2DTO_ApiTaskInfo(newTask),
+    };
 
     const { status, data } = await apiInstance.taskCURDAddTask(apiAddTaskRequest);
     if (status !== 200) {
-      throw new Error(`AddTask failed with status: ${status}`);
+        throw new Error(`AddTask failed with status: ${status}`);
     }
     const response = data as ApiAddTaskResponse;
     return DTO2VO_ApiTaskInfo(response.task);
@@ -246,19 +342,20 @@ export async function createTask(newTask: Partial<DataRow>): Promise<DataRow|und
 
 // 删除任务: taskCURDDelTaskByIDList
 export async function deleteTaskByIDList(idList: number[]): Promise<void> {
-    const { status } = await apiInstance.taskCURDDelTaskByIDList( idList );
+    const { status } = await apiInstance.taskCURDDelTaskByIDList(idList);
     if (status !== 200) {
-      throw new Error(`DeleteTask failed with status: ${status}`);
+        throw new Error(`DeleteTask failed with status: ${status}`);
     }
     return;
 }
 
 // 更新任务: taskCURDUpdateTask
-export async function updateTask(updatedTask: Partial<DataRow> & { iD: number }): Promise<DataRow|undefined> {
-
+export async function updateTask(
+    updatedTask: Partial<DataRow> & { id: number }
+): Promise<DataRow | undefined> {
     const req: ApiUpdateTaskRequest = {
-        task: VO2DTO_ApiTaskInfo(updatedTask)
-        }
+        task: VO2DTO_ApiTaskInfo(updatedTask),
+    };
 
     const { status, data } = await apiInstance.taskCURDUpdateTask(req);
     if (status !== 200) {
