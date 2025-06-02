@@ -27,6 +27,10 @@ import type { ApiAddTaskRequest } from '../model';
 import type { ApiAddTaskResponse } from '../model';
 // @ts-ignore
 import type { ApiGetTaskListResponse } from '../model';
+// @ts-ignore
+import type { ApiUpdateTaskRequest } from '../model';
+// @ts-ignore
+import type { ApiUpdateTaskResponse } from '../model';
 /**
  * TaskCURDApi - axios parameter creator
  * @export
@@ -136,6 +140,41 @@ export const TaskCURDApiAxiosParamCreator = function (configuration?: Configurat
                 options: localVarRequestOptions,
             };
         },
+        /**
+         * 
+         * @param {ApiUpdateTaskRequest} apiUpdateTaskRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        taskCURDUpdateTask: async (apiUpdateTaskRequest: ApiUpdateTaskRequest, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'apiUpdateTaskRequest' is not null or undefined
+            assertParamExists('taskCURDUpdateTask', 'apiUpdateTaskRequest', apiUpdateTaskRequest)
+            const localVarPath = `/task`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PATCH', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(apiUpdateTaskRequest, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
     }
 };
 
@@ -182,6 +221,18 @@ export const TaskCURDApiFp = function(configuration?: Configuration) {
             const localVarOperationServerBasePath = operationServerMap['TaskCURDApi.taskCURDGetTaskList']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
+        /**
+         * 
+         * @param {ApiUpdateTaskRequest} apiUpdateTaskRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async taskCURDUpdateTask(apiUpdateTaskRequest: ApiUpdateTaskRequest, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApiUpdateTaskResponse>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.taskCURDUpdateTask(apiUpdateTaskRequest, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['TaskCURDApi.taskCURDUpdateTask']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
     }
 };
 
@@ -218,6 +269,15 @@ export const TaskCURDApiFactory = function (configuration?: Configuration, baseP
          */
         taskCURDGetTaskList(iDList?: Array<number>, options?: RawAxiosRequestConfig): AxiosPromise<ApiGetTaskListResponse> {
             return localVarFp.taskCURDGetTaskList(iDList, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @param {ApiUpdateTaskRequest} apiUpdateTaskRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        taskCURDUpdateTask(apiUpdateTaskRequest: ApiUpdateTaskRequest, options?: RawAxiosRequestConfig): AxiosPromise<ApiUpdateTaskResponse> {
+            return localVarFp.taskCURDUpdateTask(apiUpdateTaskRequest, options).then((request) => request(axios, basePath));
         },
     };
 };
@@ -260,6 +320,17 @@ export class TaskCURDApi extends BaseAPI {
      */
     public taskCURDGetTaskList(iDList?: Array<number>, options?: RawAxiosRequestConfig) {
         return TaskCURDApiFp(this.configuration).taskCURDGetTaskList(iDList, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @param {ApiUpdateTaskRequest} apiUpdateTaskRequest 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof TaskCURDApi
+     */
+    public taskCURDUpdateTask(apiUpdateTaskRequest: ApiUpdateTaskRequest, options?: RawAxiosRequestConfig) {
+        return TaskCURDApiFp(this.configuration).taskCURDUpdateTask(apiUpdateTaskRequest, options).then((request) => request(this.axios, this.basePath));
     }
 }
 
