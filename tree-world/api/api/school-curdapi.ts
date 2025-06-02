@@ -27,6 +27,10 @@ import type { ApiAddCourseSwapRequestRequest } from '../model';
 import type { ApiAddCourseSwapRequestResponse } from '../model';
 // @ts-ignore
 import type { ApiGetCourseSwapRequestListResponse } from '../model';
+// @ts-ignore
+import type { ApiUpdateCourseSwapRequestRequest } from '../model';
+// @ts-ignore
+import type { ApiUpdateCourseSwapRequestResponse } from '../model';
 /**
  * SchoolCURDApi - axios parameter creator
  * @export
@@ -136,6 +140,41 @@ export const SchoolCURDApiAxiosParamCreator = function (configuration?: Configur
                 options: localVarRequestOptions,
             };
         },
+        /**
+         * 
+         * @param {ApiUpdateCourseSwapRequestRequest} apiUpdateCourseSwapRequestRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        schoolCURDUpdateCourseSwapRequest: async (apiUpdateCourseSwapRequestRequest: ApiUpdateCourseSwapRequestRequest, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'apiUpdateCourseSwapRequestRequest' is not null or undefined
+            assertParamExists('schoolCURDUpdateCourseSwapRequest', 'apiUpdateCourseSwapRequestRequest', apiUpdateCourseSwapRequestRequest)
+            const localVarPath = `/course-swap-request`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PATCH', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(apiUpdateCourseSwapRequestRequest, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
     }
 };
 
@@ -182,6 +221,18 @@ export const SchoolCURDApiFp = function(configuration?: Configuration) {
             const localVarOperationServerBasePath = operationServerMap['SchoolCURDApi.schoolCURDGetCourseSwapRequestList']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
+        /**
+         * 
+         * @param {ApiUpdateCourseSwapRequestRequest} apiUpdateCourseSwapRequestRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async schoolCURDUpdateCourseSwapRequest(apiUpdateCourseSwapRequestRequest: ApiUpdateCourseSwapRequestRequest, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApiUpdateCourseSwapRequestResponse>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.schoolCURDUpdateCourseSwapRequest(apiUpdateCourseSwapRequestRequest, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['SchoolCURDApi.schoolCURDUpdateCourseSwapRequest']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
     }
 };
 
@@ -218,6 +269,15 @@ export const SchoolCURDApiFactory = function (configuration?: Configuration, bas
          */
         schoolCURDGetCourseSwapRequestList(iDList?: Array<number>, options?: RawAxiosRequestConfig): AxiosPromise<ApiGetCourseSwapRequestListResponse> {
             return localVarFp.schoolCURDGetCourseSwapRequestList(iDList, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @param {ApiUpdateCourseSwapRequestRequest} apiUpdateCourseSwapRequestRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        schoolCURDUpdateCourseSwapRequest(apiUpdateCourseSwapRequestRequest: ApiUpdateCourseSwapRequestRequest, options?: RawAxiosRequestConfig): AxiosPromise<ApiUpdateCourseSwapRequestResponse> {
+            return localVarFp.schoolCURDUpdateCourseSwapRequest(apiUpdateCourseSwapRequestRequest, options).then((request) => request(axios, basePath));
         },
     };
 };
@@ -260,6 +320,17 @@ export class SchoolCURDApi extends BaseAPI {
      */
     public schoolCURDGetCourseSwapRequestList(iDList?: Array<number>, options?: RawAxiosRequestConfig) {
         return SchoolCURDApiFp(this.configuration).schoolCURDGetCourseSwapRequestList(iDList, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @param {ApiUpdateCourseSwapRequestRequest} apiUpdateCourseSwapRequestRequest 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof SchoolCURDApi
+     */
+    public schoolCURDUpdateCourseSwapRequest(apiUpdateCourseSwapRequestRequest: ApiUpdateCourseSwapRequestRequest, options?: RawAxiosRequestConfig) {
+        return SchoolCURDApiFp(this.configuration).schoolCURDUpdateCourseSwapRequest(apiUpdateCourseSwapRequestRequest, options).then((request) => request(this.axios, this.basePath));
     }
 }
 

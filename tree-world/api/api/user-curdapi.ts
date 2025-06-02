@@ -45,6 +45,14 @@ import type { ApiGetUserDeptListResponse } from '../model';
 import type { ApiGetUserJobListResponse } from '../model';
 // @ts-ignore
 import type { ApiGetUserListResponse } from '../model';
+// @ts-ignore
+import type { ApiUpdateUserDeptRequest } from '../model';
+// @ts-ignore
+import type { ApiUpdateUserDeptResponse } from '../model';
+// @ts-ignore
+import type { ApiUpdateUserJobRequest } from '../model';
+// @ts-ignore
+import type { ApiUpdateUserJobResponse } from '../model';
 /**
  * UserCURDApi - axios parameter creator
  * @export
@@ -424,6 +432,76 @@ export const UserCURDApiAxiosParamCreator = function (configuration?: Configurat
                 options: localVarRequestOptions,
             };
         },
+        /**
+         * 
+         * @param {ApiUpdateUserDeptRequest} apiUpdateUserDeptRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        userCURDUpdateUserDept: async (apiUpdateUserDeptRequest: ApiUpdateUserDeptRequest, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'apiUpdateUserDeptRequest' is not null or undefined
+            assertParamExists('userCURDUpdateUserDept', 'apiUpdateUserDeptRequest', apiUpdateUserDeptRequest)
+            const localVarPath = `/user-dept`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PATCH', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(apiUpdateUserDeptRequest, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
+         * @param {ApiUpdateUserJobRequest} apiUpdateUserJobRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        userCURDUpdateUserJob: async (apiUpdateUserJobRequest: ApiUpdateUserJobRequest, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'apiUpdateUserJobRequest' is not null or undefined
+            assertParamExists('userCURDUpdateUserJob', 'apiUpdateUserJobRequest', apiUpdateUserJobRequest)
+            const localVarPath = `/user-job`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PATCH', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(apiUpdateUserJobRequest, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
     }
 };
 
@@ -565,6 +643,30 @@ export const UserCURDApiFp = function(configuration?: Configuration) {
             const localVarOperationServerBasePath = operationServerMap['UserCURDApi.userCURDGetUserList']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
+        /**
+         * 
+         * @param {ApiUpdateUserDeptRequest} apiUpdateUserDeptRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async userCURDUpdateUserDept(apiUpdateUserDeptRequest: ApiUpdateUserDeptRequest, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApiUpdateUserDeptResponse>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.userCURDUpdateUserDept(apiUpdateUserDeptRequest, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['UserCURDApi.userCURDUpdateUserDept']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * 
+         * @param {ApiUpdateUserJobRequest} apiUpdateUserJobRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async userCURDUpdateUserJob(apiUpdateUserJobRequest: ApiUpdateUserJobRequest, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApiUpdateUserJobResponse>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.userCURDUpdateUserJob(apiUpdateUserJobRequest, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['UserCURDApi.userCURDUpdateUserJob']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
     }
 };
 
@@ -672,6 +774,24 @@ export const UserCURDApiFactory = function (configuration?: Configuration, baseP
          */
         userCURDGetUserList(iDList?: Array<number>, options?: RawAxiosRequestConfig): AxiosPromise<ApiGetUserListResponse> {
             return localVarFp.userCURDGetUserList(iDList, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @param {ApiUpdateUserDeptRequest} apiUpdateUserDeptRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        userCURDUpdateUserDept(apiUpdateUserDeptRequest: ApiUpdateUserDeptRequest, options?: RawAxiosRequestConfig): AxiosPromise<ApiUpdateUserDeptResponse> {
+            return localVarFp.userCURDUpdateUserDept(apiUpdateUserDeptRequest, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @param {ApiUpdateUserJobRequest} apiUpdateUserJobRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        userCURDUpdateUserJob(apiUpdateUserJobRequest: ApiUpdateUserJobRequest, options?: RawAxiosRequestConfig): AxiosPromise<ApiUpdateUserJobResponse> {
+            return localVarFp.userCURDUpdateUserJob(apiUpdateUserJobRequest, options).then((request) => request(axios, basePath));
         },
     };
 };
@@ -801,6 +921,28 @@ export class UserCURDApi extends BaseAPI {
      */
     public userCURDGetUserList(iDList?: Array<number>, options?: RawAxiosRequestConfig) {
         return UserCURDApiFp(this.configuration).userCURDGetUserList(iDList, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @param {ApiUpdateUserDeptRequest} apiUpdateUserDeptRequest 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof UserCURDApi
+     */
+    public userCURDUpdateUserDept(apiUpdateUserDeptRequest: ApiUpdateUserDeptRequest, options?: RawAxiosRequestConfig) {
+        return UserCURDApiFp(this.configuration).userCURDUpdateUserDept(apiUpdateUserDeptRequest, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @param {ApiUpdateUserJobRequest} apiUpdateUserJobRequest 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof UserCURDApi
+     */
+    public userCURDUpdateUserJob(apiUpdateUserJobRequest: ApiUpdateUserJobRequest, options?: RawAxiosRequestConfig) {
+        return UserCURDApiFp(this.configuration).userCURDUpdateUserJob(apiUpdateUserJobRequest, options).then((request) => request(this.axios, this.basePath));
     }
 }
 

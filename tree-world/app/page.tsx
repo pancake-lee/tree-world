@@ -26,6 +26,7 @@ import {
   updateRowOrder,
   getTableColumns,
   getTaskList,
+  updateTask,
 } from "./tableData";
 import "antd/dist/reset.css";
 import { SearchOutlined } from "@ant-design/icons";
@@ -130,7 +131,7 @@ export default function Home() {
       setColumns(res);
     });
     getTaskList().then((res) => {
-        setData(res);
+      setData(res);
     });
   }, []);
 
@@ -346,42 +347,42 @@ export default function Home() {
   // 单元格点击进入编辑状态
   const [editingDataIndex, setEditingDataIndex] = useState<string | null>(null);
   const [editingKey, setEditingKey] = useState<string>("");
-  const [editingRow, setEditingRow] = useState<DataRow | null>(null);
   const [form] = Form.useForm();
   const edit = (record: DataRow, dataIndex: string) => {
     setEditingKey(record.key);
-    setEditingRow({ ...record });
     form.setFieldsValue({ ...record });
     setEditingDataIndex(dataIndex);
   };
 
   const cancel = () => {
     setEditingKey("");
-    setEditingRow(null);
   };
 
   const save = async (key: string) => {
     try {
       const row = (await form.validateFields()) as DataRow;
       const newData = [...data];
-      const updateRow = (rows: DataRow[]): boolean => {
+      const updateRow = async (rows: DataRow[]): Promise<boolean> => {
         for (let i = 0; i < rows.length; i++) {
           if (rows[i].key === key) {
-            rows[i] = { ...rows[i], ...row };
+            const newRow = await updateTask({...row,iD: rows[i].iD});
+            rows[i] = { ...rows[i], ...newRow };
             return true;
           }
-          if (rows[i].children && updateRow(rows[i].children as DataRow[]))
+          if (
+            rows[i].children &&
+            (await updateRow(rows[i].children as DataRow[]))
+          )
             return true;
         }
         return false;
       };
-      updateRow(newData);
+      await updateRow(newData);
       setData(newData);
       setEditingKey("");
-      setEditingRow(null);
       message.success("保存成功");
     } catch {
-      // 校验失败
+        console.log("update failed");
     }
   };
 
@@ -427,8 +428,8 @@ export default function Home() {
       dataSource={data}
       pagination={false}
       rowKey="key"
-      scroll={{ x: "max-content", y:"89vh" }}
-      style={{ width: "max-content" }} 
+      scroll={{ x: "max-content", y: "89vh" }}
+      style={{ width: "max-content" }}
       components={components}
       rowClassName={(record: DataRow) => {
         if (dragOverInfo && record.key === dragOverInfo.key) {
@@ -460,7 +461,7 @@ export default function Home() {
         onDragLeave: () => {
           setDragOverInfo(null);
         },
-        onDrop: (e: React.DragEvent) => {
+        onDrop: async (e: React.DragEvent) => {
           e.preventDefault();
           const sourceKey = e.dataTransfer.getData("text/plain");
           const targetKey = record.key;
@@ -469,7 +470,7 @@ export default function Home() {
               e.currentTarget as HTMLElement
             ).getBoundingClientRect();
             const dropY = e.clientY;
-            const newData = updateRowOrder(
+            const newData = await updateRowOrder(
               data,
               sourceKey,
               targetKey,
@@ -618,24 +619,26 @@ export default function Home() {
     );
   };
 
-  return addTheme(addDragStyles(
-    <div
-      style={{
-        height: "100vh",
-        width: "100vw",
-        padding: 16,
-        backgroundColor: "#141414",
-        color: "#fff",
-      }}
-    >
-      {mounted && (
-        <>
-          <Form form={form} component={false}>
-            {tableContent}
-          </Form>
-          {drawerContent}
-        </>
-      )}
-    </div>
-  ));
+  return addTheme(
+    addDragStyles(
+      <div
+        style={{
+          height: "100vh",
+          width: "100vw",
+          padding: 16,
+          backgroundColor: "#141414",
+          color: "#fff",
+        }}
+      >
+        {mounted && (
+          <>
+            <Form form={form} component={false}>
+              {tableContent}
+            </Form>
+            {drawerContent}
+          </>
+        )}
+      </div>
+    )
+  );
 }

@@ -7,6 +7,7 @@ All URIs are relative to *http://localhost*
 |[**schoolCURDAddCourseSwapRequest**](#schoolcurdaddcourseswaprequest) | **POST** /course-swap-request | |
 |[**schoolCURDDelCourseSwapRequestByIDList**](#schoolcurddelcourseswaprequestbyidlist) | **DELETE** /course-swap-request | |
 |[**schoolCURDGetCourseSwapRequestList**](#schoolcurdgetcourseswaprequestlist) | **GET** /course-swap-request | |
+|[**schoolCURDUpdateCourseSwapRequest**](#schoolcurdupdatecourseswaprequest) | **PATCH** /course-swap-request | |
 
 # **schoolCURDAddCourseSwapRequest**
 > ApiAddCourseSwapRequestResponse schoolCURDAddCourseSwapRequest(apiAddCourseSwapRequestRequest)
@@ -150,6 +151,57 @@ No authorization required
 ### HTTP request headers
 
  - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | OK |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **schoolCURDUpdateCourseSwapRequest**
+> ApiUpdateCourseSwapRequestResponse schoolCURDUpdateCourseSwapRequest(apiUpdateCourseSwapRequestRequest)
+
+
+### Example
+
+```typescript
+import {
+    SchoolCURDApi,
+    Configuration,
+    ApiUpdateCourseSwapRequestRequest
+} from './api';
+
+const configuration = new Configuration();
+const apiInstance = new SchoolCURDApi(configuration);
+
+let apiUpdateCourseSwapRequestRequest: ApiUpdateCourseSwapRequestRequest; //
+
+const { status, data } = await apiInstance.schoolCURDUpdateCourseSwapRequest(
+    apiUpdateCourseSwapRequestRequest
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **apiUpdateCourseSwapRequestRequest** | **ApiUpdateCourseSwapRequestRequest**|  | |
+
+
+### Return type
+
+**ApiUpdateCourseSwapRequestResponse**
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
  - **Accept**: application/json
 
 

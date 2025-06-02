@@ -27,6 +27,10 @@ import type { ApiAddAbandonCodeRequest } from '../model';
 import type { ApiAddAbandonCodeResponse } from '../model';
 // @ts-ignore
 import type { ApiGetAbandonCodeListResponse } from '../model';
+// @ts-ignore
+import type { ApiUpdateAbandonCodeRequest } from '../model';
+// @ts-ignore
+import type { ApiUpdateAbandonCodeResponse } from '../model';
 /**
  * AbandonCodeCURDApi - axios parameter creator
  * @export
@@ -69,7 +73,7 @@ export const AbandonCodeCURDApiAxiosParamCreator = function (configuration?: Con
             };
         },
         /**
-         * MARK REMOVE IF NO PRIMARY KEY START
+         * 
          * @param {Array<number>} [idx1List] MARK REPLACE REQUEST IDX START 替换内容，索引字段
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -136,6 +140,41 @@ export const AbandonCodeCURDApiAxiosParamCreator = function (configuration?: Con
                 options: localVarRequestOptions,
             };
         },
+        /**
+         * MARK REMOVE IF NO PRIMARY KEY START
+         * @param {ApiUpdateAbandonCodeRequest} apiUpdateAbandonCodeRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        abandonCodeCURDUpdateAbandonCode: async (apiUpdateAbandonCodeRequest: ApiUpdateAbandonCodeRequest, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'apiUpdateAbandonCodeRequest' is not null or undefined
+            assertParamExists('abandonCodeCURDUpdateAbandonCode', 'apiUpdateAbandonCodeRequest', apiUpdateAbandonCodeRequest)
+            const localVarPath = `/abandon-code`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PATCH', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(apiUpdateAbandonCodeRequest, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
     }
 };
 
@@ -159,7 +198,7 @@ export const AbandonCodeCURDApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * MARK REMOVE IF NO PRIMARY KEY START
+         * 
          * @param {Array<number>} [idx1List] MARK REPLACE REQUEST IDX START 替换内容，索引字段
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -182,6 +221,18 @@ export const AbandonCodeCURDApiFp = function(configuration?: Configuration) {
             const localVarOperationServerBasePath = operationServerMap['AbandonCodeCURDApi.abandonCodeCURDGetAbandonCodeList']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
+        /**
+         * MARK REMOVE IF NO PRIMARY KEY START
+         * @param {ApiUpdateAbandonCodeRequest} apiUpdateAbandonCodeRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async abandonCodeCURDUpdateAbandonCode(apiUpdateAbandonCodeRequest: ApiUpdateAbandonCodeRequest, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApiUpdateAbandonCodeResponse>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.abandonCodeCURDUpdateAbandonCode(apiUpdateAbandonCodeRequest, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['AbandonCodeCURDApi.abandonCodeCURDUpdateAbandonCode']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
     }
 };
 
@@ -202,7 +253,7 @@ export const AbandonCodeCURDApiFactory = function (configuration?: Configuration
             return localVarFp.abandonCodeCURDAddAbandonCode(apiAddAbandonCodeRequest, options).then((request) => request(axios, basePath));
         },
         /**
-         * MARK REMOVE IF NO PRIMARY KEY START
+         * 
          * @param {Array<number>} [idx1List] MARK REPLACE REQUEST IDX START 替换内容，索引字段
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -218,6 +269,15 @@ export const AbandonCodeCURDApiFactory = function (configuration?: Configuration
          */
         abandonCodeCURDGetAbandonCodeList(idx1List?: Array<number>, options?: RawAxiosRequestConfig): AxiosPromise<ApiGetAbandonCodeListResponse> {
             return localVarFp.abandonCodeCURDGetAbandonCodeList(idx1List, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * MARK REMOVE IF NO PRIMARY KEY START
+         * @param {ApiUpdateAbandonCodeRequest} apiUpdateAbandonCodeRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        abandonCodeCURDUpdateAbandonCode(apiUpdateAbandonCodeRequest: ApiUpdateAbandonCodeRequest, options?: RawAxiosRequestConfig): AxiosPromise<ApiUpdateAbandonCodeResponse> {
+            return localVarFp.abandonCodeCURDUpdateAbandonCode(apiUpdateAbandonCodeRequest, options).then((request) => request(axios, basePath));
         },
     };
 };
@@ -241,7 +301,7 @@ export class AbandonCodeCURDApi extends BaseAPI {
     }
 
     /**
-     * MARK REMOVE IF NO PRIMARY KEY START
+     * 
      * @param {Array<number>} [idx1List] MARK REPLACE REQUEST IDX START 替换内容，索引字段
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -260,6 +320,17 @@ export class AbandonCodeCURDApi extends BaseAPI {
      */
     public abandonCodeCURDGetAbandonCodeList(idx1List?: Array<number>, options?: RawAxiosRequestConfig) {
         return AbandonCodeCURDApiFp(this.configuration).abandonCodeCURDGetAbandonCodeList(idx1List, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * MARK REMOVE IF NO PRIMARY KEY START
+     * @param {ApiUpdateAbandonCodeRequest} apiUpdateAbandonCodeRequest 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof AbandonCodeCURDApi
+     */
+    public abandonCodeCURDUpdateAbandonCode(apiUpdateAbandonCodeRequest: ApiUpdateAbandonCodeRequest, options?: RawAxiosRequestConfig) {
+        return AbandonCodeCURDApiFp(this.configuration).abandonCodeCURDUpdateAbandonCode(apiUpdateAbandonCodeRequest, options).then((request) => request(this.axios, this.basePath));
     }
 }
 

@@ -7,6 +7,7 @@ All URIs are relative to *http://localhost*
 |[**taskCURDAddTask**](#taskcurdaddtask) | **POST** /task | |
 |[**taskCURDDelTaskByIDList**](#taskcurddeltaskbyidlist) | **DELETE** /task | |
 |[**taskCURDGetTaskList**](#taskcurdgettasklist) | **GET** /task | |
+|[**taskCURDUpdateTask**](#taskcurdupdatetask) | **PATCH** /task | |
 
 # **taskCURDAddTask**
 > ApiAddTaskResponse taskCURDAddTask(apiAddTaskRequest)
@@ -150,6 +151,57 @@ No authorization required
 ### HTTP request headers
 
  - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | OK |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **taskCURDUpdateTask**
+> ApiUpdateTaskResponse taskCURDUpdateTask(apiUpdateTaskRequest)
+
+
+### Example
+
+```typescript
+import {
+    TaskCURDApi,
+    Configuration,
+    ApiUpdateTaskRequest
+} from './api';
+
+const configuration = new Configuration();
+const apiInstance = new TaskCURDApi(configuration);
+
+let apiUpdateTaskRequest: ApiUpdateTaskRequest; //
+
+const { status, data } = await apiInstance.taskCURDUpdateTask(
+    apiUpdateTaskRequest
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **apiUpdateTaskRequest** | **ApiUpdateTaskRequest**|  | |
+
+
+### Return type
+
+**ApiUpdateTaskResponse**
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
  - **Accept**: application/json
 
 

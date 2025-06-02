@@ -15,6 +15,8 @@ All URIs are relative to *http://localhost*
 |[**userCURDGetUserDeptList**](#usercurdgetuserdeptlist) | **GET** /user-dept | |
 |[**userCURDGetUserJobList**](#usercurdgetuserjoblist) | **GET** /user-job | |
 |[**userCURDGetUserList**](#usercurdgetuserlist) | **GET** /user | |
+|[**userCURDUpdateUserDept**](#usercurdupdateuserdept) | **PATCH** /user-dept | |
+|[**userCURDUpdateUserJob**](#usercurdupdateuserjob) | **PATCH** /user-job | |
 
 # **userCURDAddUser**
 > ApiAddUserResponse userCURDAddUser(apiAddUserRequest)
@@ -557,6 +559,108 @@ No authorization required
 ### HTTP request headers
 
  - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | OK |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **userCURDUpdateUserDept**
+> ApiUpdateUserDeptResponse userCURDUpdateUserDept(apiUpdateUserDeptRequest)
+
+
+### Example
+
+```typescript
+import {
+    UserCURDApi,
+    Configuration,
+    ApiUpdateUserDeptRequest
+} from './api';
+
+const configuration = new Configuration();
+const apiInstance = new UserCURDApi(configuration);
+
+let apiUpdateUserDeptRequest: ApiUpdateUserDeptRequest; //
+
+const { status, data } = await apiInstance.userCURDUpdateUserDept(
+    apiUpdateUserDeptRequest
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **apiUpdateUserDeptRequest** | **ApiUpdateUserDeptRequest**|  | |
+
+
+### Return type
+
+**ApiUpdateUserDeptResponse**
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | OK |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **userCURDUpdateUserJob**
+> ApiUpdateUserJobResponse userCURDUpdateUserJob(apiUpdateUserJobRequest)
+
+
+### Example
+
+```typescript
+import {
+    UserCURDApi,
+    Configuration,
+    ApiUpdateUserJobRequest
+} from './api';
+
+const configuration = new Configuration();
+const apiInstance = new UserCURDApi(configuration);
+
+let apiUpdateUserJobRequest: ApiUpdateUserJobRequest; //
+
+const { status, data } = await apiInstance.userCURDUpdateUserJob(
+    apiUpdateUserJobRequest
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **apiUpdateUserJobRequest** | **ApiUpdateUserJobRequest**|  | |
+
+
+### Return type
+
+**ApiUpdateUserJobResponse**
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
  - **Accept**: application/json
 
 
