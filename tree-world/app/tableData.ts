@@ -8,7 +8,7 @@ import {
     ApiGetTaskListResponse,
 } from "../api";
 
-// 列定义结构（仅包含列名，后端返回）
+// 列定义结构
 export type ColumnMeta = {
     title: string;
     dataIndex: string;
@@ -16,7 +16,7 @@ export type ColumnMeta = {
     enableSearch?: boolean; // 是否启用搜索
 };
 
-// 行数据结构（后端返回）
+// 行数据结构
 export type DataRow = {
     key: string;
 
@@ -39,90 +39,7 @@ export async function getTableColumns(): Promise<ColumnMeta[]> {
     return columns;
 }
 
-// 新增：辅助函数，从树形数据中移除指定节点
-// 改写 removeNode 为异步函数，调用 deleteTaskByIDList 删除后端数据，成功后再更新表格数据
-async function removeNode(
-    data: DataRow[],
-    key: string
-): Promise<{ delNode: DataRow | null; newData: DataRow[] }> {
-    for (let i = 0; i < data.length; i++) {
-        if (data[i].key === key) {
-            try {
-                await deleteTaskByIDList([data[i].id]);
-                const node = data[i];
-                data.splice(i, 1);
-                return { delNode: node, newData: data };
-            } catch (e) {
-                // 删除后端数据失败，返回原有数据，不做任何修改
-                return { delNode: null, newData: data };
-            }
-        }
-        if (data[i].children) {
-            const result = await removeNode(data[i].children!, key);
-            if (result.delNode) {
-                data[i].children = result.newData;
-                return { delNode: result.delNode, newData: data };
-            }
-        }
-    }
-    return { delNode: null, newData: data };
-}
-
-// 改写后的辅助函数，在树形数据中插入节点，调用 createTask 同步后端数据，返回更新后的 data 以及创建的 node
-export async function insertNode(
-    data: DataRow[],
-    targetKey: string,
-    node: DataRow,
-    position: "before" | "after" | "child"
-): Promise<{ addNode: DataRow | null; newData: DataRow[] }> {
-    for (let i = 0; i < data.length; i++) {
-        if (data[i].key === targetKey) {
-            // 根据插入位置更新 node 的 parentID
-            if (position === "child") {
-                node.parentID = data[i].id;
-            } else {
-                node.parentID = data[i].parentID;
-            }
-            // 调用 createTask 同步后端数据，并检查调用结果
-            let newNode: DataRow;
-            try {
-                const createdNode = await createTask(node);
-                if (!createdNode) {
-                    // createTask 返回 undefined，表示失败：不改变表格数据
-                    return { addNode: null, newData: data };
-                }
-                newNode = createdNode;
-            } catch (error) {
-                // createTask 调用失败，不更新本地数据
-                return { addNode: null, newData: data };
-            }
-            if (position === "before") {
-                data.splice(i, 0, newNode);
-            } else if (position === "after") {
-                data.splice(i + 1, 0, newNode);
-            } else if (position === "child") {
-                data[i].children = data[i].children || [];
-                (data[i].children ||= []).unshift(newNode);
-            }
-            return { addNode: newNode, newData: data };
-        }
-        if (data[i].children) {
-            const result = await insertNode(
-                data[i].children!,
-                targetKey,
-                node,
-                position
-            );
-            if (result.addNode) {
-                data[i].children = result.newData;
-                return { newData: data, addNode: result.addNode };
-            }
-        }
-    }
-    return { addNode: null, newData: data };
-}
-
-function getRowByKey(data: DataRow[], key: string): DataRow | null {
+export function getRowByKey(data: DataRow[], key: string): DataRow | null {
     for (let i = 0; i < data.length; i++) {
         if (data[i].key === key) {
             return data[i];
@@ -137,7 +54,7 @@ function getRowByKey(data: DataRow[], key: string): DataRow | null {
     return null;
 }
 
-// 新增：更新行排序，根据拖拽位置调整节点顺序
+// 更新行排序，根据拖拽位置调整节点顺序
 export async function updateRowOrder(
     data: DataRow[],
     sourceKey: string,
@@ -233,6 +150,8 @@ export function VO2DTO_ApiTaskInfo(vo: Partial<DataRow>): ApiTaskInfo {
         metadata: JSON.stringify(vo.metadata || {}),
     };
 }
+
+// --------------------------------------------------
 
 const configuration = new Configuration();
 configuration.basePath = "http://127.0.0.1:8000";
