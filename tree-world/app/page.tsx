@@ -23,6 +23,7 @@ import {
 import {
     ColumnMeta,
     DataRow,
+    getRowByKey,
     updateRowOrder,
     getTableColumns,
     getTaskList,
@@ -153,65 +154,101 @@ export default function Home() {
     }, [colWidths]);
 
     // 设置列宽
-    const handleResize =
-        (dataIndex: string) =>
-            (_: any, { size }: { size: { width: number } }) => {
-                setColWidths((prev) => ({
-                    ...prev,
-                    [dataIndex]: size.width,
-                }));
-            };
+    const getColumnsResizeProps = (col: ColumnMeta) => ({
+        width: getColWidth(colWidths[col.key as keyof typeof colWidths]),
+        onResize: (_: any, { size }: { size: { width: number } }) => {
+            setColWidths((prev) => ({
+                ...prev,
+                [col.key]: size.width,
+            }));
+        }
+    });
 
-    // 动态设置列宽和拖拽
-    const columnsWithResize = columns.map((col: ColumnMeta) => ({
+    // 拖拽列头排序
+    const getColumnsDragProps = (col: ColumnMeta) => ({
+        draggable: true,
+        onDragStart: (e: React.DragEvent) => {
+            e.dataTransfer.setData("text/plain", col.key);
+        },
+        onDragOver: (e: React.DragEvent) => {
+            e.preventDefault();
+        },
+        onDrop: (e: React.DragEvent) => {
+            e.preventDefault();
+            const draggedKey = e.dataTransfer.getData("text/plain");
+            if (!draggedKey || draggedKey === col.key) {
+                return; // 没有拖拽或拖拽到自己，忽略   
+            }
+            const fromIndex = columns.findIndex((c) => c.key === draggedKey);
+            const toIndex = columns.findIndex((c) => c.key === col.key);
+            const newCols = [...columns];
+            const [moved] = newCols.splice(fromIndex, 1);
+            newCols.splice(toIndex, 0, moved);
+            setColumns(newCols);
+        },
+    });
+
+    // --------------------------------------------------
+    // 单元格相关
+    // --------------------------------------------------
+    // 单元格点击进入编辑状态
+    const [editingKey, setEditingKey] = useState<string>("");
+    const [editingDataIndex, setEditingDataIndex] = useState<string | null>(null);
+    const [form] = Form.useForm();
+    const setEditing = (record: DataRow, dataIndex: string) => {
+        if (isEditingCol(record, dataIndex)) {
+            return;// 已在编辑状态
+        }
+        setEditingKey(record.key);
+        form.setFieldsValue({ ...record });
+        setEditingDataIndex(dataIndex);
+    };
+    
+    const isEditing = (record: DataRow) => record.key === editingKey;
+    const isEditingCol = (record: DataRow,dataIndex: string) => 
+        isEditing(record) && editingDataIndex === dataIndex
+    const cancel = () => {setEditingKey("");};
+    const save = async (key: string) => {
+        const row = (await form.validateFields()) as DataRow;
+        const curRow = getRowByKey(data, key); 
+        const newRow = await updateTask({ ...row, id: curRow!.id });
+        Object.assign(curRow!, newRow);
+
+        // 因为ui更新表格数据不会更新3个id字段，不会变更位置
+        // 所以可以直接更新ui一行数据
+        setData(data);
+        setEditingKey("");
+    };
+
+    // --------------------------------------------------
+    // 配置列，包括列头和单元格，上面定义了很多属性，都将设置到列配置中
+    // --------------------------------------------------
+    const columnsConfig = columns.map((col: ColumnMeta) => ({
         ...col,
         width: getColWidth(colWidths[col.key as keyof typeof colWidths]),
         onHeaderCell: () => ({
-            width: getColWidth(colWidths[col.key as keyof typeof colWidths]),
-            onResize: handleResize(col.key),
-            // 添加拖拽属性和事件处理：拖拽列头排序
-            draggable: true,
-            onDragStart: (e: React.DragEvent) => {
-                // 设置 dataTransfer 保存列 key
-                e.dataTransfer.setData("text/plain", col.key);
-            },
-            onDragOver: (e: React.DragEvent) => {
-                e.preventDefault();
-            },
-            onDrop: (e: React.DragEvent) => {
-                e.preventDefault();
-                // 从 dataTransfer 获取拖拽的列 key
-                const draggedKey = e.dataTransfer.getData("text/plain");
-                if (draggedKey && draggedKey !== col.key) {
-                    const fromIndex = columns.findIndex((c) => c.key === draggedKey);
-                    const toIndex = columns.findIndex((c) => c.key === col.key);
-                    const newCols = [...columns];
-                    const [moved] = newCols.splice(fromIndex, 1);
-                    newCols.splice(toIndex, 0, moved);
-                    setColumns(newCols);
-                }
-            },
+            ...getColumnsResizeProps(col),
+            ...getColumnsDragProps(col),
         }),
-        ...(col.enableSearch
-            ? getColumnSearchProps<DataRow>(
+        ...(!col.enableSearch ? {} : // 根据列属性开启搜索
+            getColumnSearchProps<DataRow>(
                 col.dataIndex as keyof DataRow,
                 col.title as string
-            )
-            : {}),
+            )),
         onCell: (record: DataRow) => ({
             record,
             dataIndex: col.dataIndex,
             title: col.title,
-            editing: isEditing(record) && editingDataIndex === col.dataIndex,
+            editing: isEditingCol(record, col.dataIndex),
             onClick: () => {
-                if (!isEditing(record) || editingDataIndex !== col.dataIndex) {
-                    edit(record, col.dataIndex);
-                }
+                setEditing(record, col.dataIndex);// 点击单元格进入编辑状态
             },
             style: { cursor: "pointer" },
         }),
         render: (text: any, record: DataRow) =>
-            isEditing(record) && editingDataIndex === col.dataIndex ? (
+            // 如果不是编辑状态，渲染文本，否则渲染输入框
+            !isEditingCol(record, col.dataIndex) ? (text):
+            (
                 <Form.Item
                     name={col.dataIndex}
                     style={{ margin: 0 }}
@@ -223,52 +260,12 @@ export default function Home() {
                         onBlur={() => save(record.key)}
                     />
                 </Form.Item>
-            ) : (
-                text
             ),
     }));
 
-    // 详情按钮列
-    // 修改详情按钮列 onCell，移除 editable 和 editing 属性，避免将非布尔值属性传递到 DOM
-    const isEditing = (record: DataRow) => record.key === editingKey;
-    columnsWithResize.push({
-        title: "操作",
-        key: "action",
-        dataIndex: "action",
-        width: 60,
-        onHeaderCell: () => ({
-            width: 60,
-        }),
-        onCell: (record: DataRow) => ({
-            record,
-            dataIndex: "action",
-            title: "操作",
-            editing: false,
-            onClick: () => { },
-            style: { cursor: "pointer" },
-        }),
-        render: (_: any, record: DataRow) =>
-            isEditing(record) ? (
-                <span>
-                    <a onClick={() => save(record.key)} style={{ marginRight: 8 }}>
-                        保存
-                    </a>
-                    <a onClick={cancel} style={{ marginRight: 8 }}>
-                        取消
-                    </a>
-                    <a onClick={() => showDrawer(record)}>详情</a>
-                </span>
-            ) : (
-                <>
-                    <a onClick={() => showDrawer(record)}>详情</a>
-                </>
-            ),
-    });
-
     // --------------------------------------------------
-    // 单元格相关
-    // --------------------------------------------------
-    const components = {
+    // 增加列头之间的分割线，支持拖拽，最后调用“之前设置的”onResize方法
+    const components = { 
         header: {
             cell: (props: any) => {
                 const { onResize, width, ...restProps } = props;
@@ -321,113 +318,15 @@ export default function Home() {
     };
 
     // --------------------------------------------------
-    // 单元格相关
+    // 表格内容，支持拖拽排序
     // --------------------------------------------------
-    // 详情按钮展示描述和metadata（详情按钮触发，不影响表格编辑状态）
-    const [drawerOpen, setDrawerOpen] = useState(false);
-    const [drawerEditing, setDrawerEditing] = useState(false);
-    // 展示用的
-    const [desc, setDesc] = useState<string>("");
-    const [metadata, setMetadata] = useState<Record<string, string>>({});
-    // 编辑用的
-    const [drawerEditDesc, setDrawerEditDesc] = useState<string>("");
-    const [drawerEditMetadata, setDrawerEditMetadata] = useState<
-        Record<string, string>
-    >({});
-    const showDrawer = (record: DataRow) => {
-        setDesc(record.desc || "");
-        setDrawerEditDesc(record.desc || "");
-        setMetadata(record.metadata || {});
-        setDrawerEditMetadata({ ...(record.metadata || {}) });
-        // 不设置 setEditingKey，不影响表格编辑状态
-        setDrawerEditing(false);
-        setDrawerOpen(true);
-    };
-
-    // 表格编辑
-    // 单元格点击进入编辑状态
-    const [editingDataIndex, setEditingDataIndex] = useState<string | null>(null);
-    const [editingKey, setEditingKey] = useState<string>("");
-    const [form] = Form.useForm();
-    const edit = (record: DataRow, dataIndex: string) => {
-        setEditingKey(record.key);
-        form.setFieldsValue({ ...record });
-        setEditingDataIndex(dataIndex);
-    };
-
-    const cancel = () => {
-        setEditingKey("");
-    };
-
-    const save = async (key: string) => {
-        try {
-            const row = (await form.validateFields()) as DataRow;
-            const newData = [...data];
-            const updateRow = async (rows: DataRow[]): Promise<boolean> => {
-                for (let i = 0; i < rows.length; i++) {
-                    if (rows[i].key === key) {
-                        const newRow = await updateTask({ ...row, id: rows[i].id });
-                        rows[i] = { ...rows[i], ...newRow };
-                        return true;
-                    }
-                    if (
-                        rows[i].children &&
-                        (await updateRow(rows[i].children as DataRow[]))
-                    )
-                        return true;
-                }
-                return false;
-            };
-            await updateRow(newData);
-            // 因为ui更新表格数据不会更新3个id字段，不会变更位置
-            // 所以可以直接更新ui一行数据
-            setData(newData);
-            setEditingKey("");
-            message.success("保存成功");
-        } catch {
-            console.log("update failed");
-        }
-    };
-
-    // --------------------------------------------------
-    // 抽屉相关
-    // --------------------------------------------------
-    // 抽屉编辑
-    const handleDrawerSave = () => {
-        // 更新data
-        const newData = [...data];
-        const updateRow = (rows: DataRow[]): boolean => {
-            for (let i = 0; i < rows.length; i++) {
-                if (rows[i].key === editingKey) {
-                    rows[i] = {
-                        ...rows[i],
-                        desc: drawerEditDesc,
-                        metadata: { ...drawerEditMetadata },
-                    };
-                    return true;
-                }
-                if (rows[i].children && updateRow(rows[i].children as DataRow[]))
-                    return true;
-            }
-            return false;
-        };
-        updateRow(newData);
-        setData(newData);
-        setDesc(drawerEditDesc);
-        setMetadata({ ...drawerEditMetadata });
-        setDrawerEditing(false);
-        message.success("保存成功");
-    };
-
-    // --------------------------------------------------
-    // 添加拖拽期间状态，记录目标行及其区域位置
     const [dragOverInfo, setDragOverInfo] = useState<{
         key: string;
         position: "before" | "after" | "child";
     } | null>(null);
     const tableContent = (
         <Table
-            columns={columnsWithResize}
+            columns={columnsConfig}
             dataSource={data}
             pagination={false}
             rowKey="key"
@@ -487,7 +386,92 @@ export default function Home() {
             })}
         />
     );
+
     // --------------------------------------------------
+    // 抽屉相关
+    // --------------------------------------------------
+    // 详情按钮展示描述和metadata（详情按钮触发，不影响表格编辑状态）
+    const [drawerOpen, setDrawerOpen] = useState(false);
+    const [drawerEditing, setDrawerEditing] = useState(false);
+    const [drawerEditingKey, setDrawerEditingKey] = useState<string>("");
+    // 展示用的
+    const [desc, setDesc] = useState<string>("");
+    const [metadata, setMetadata] = useState<Record<string, string>>({});
+    // 编辑用的
+    const [drawerEditDesc, setDrawerEditDesc] = useState<string>("");
+    const [drawerEditMetadata, setDrawerEditMetadata] = 
+        useState<Record<string, string>>({});
+
+    const showDrawer = (record: DataRow) => {
+        setDesc(record.desc || "");
+        setDrawerEditDesc(record.desc || "");
+        setMetadata(record.metadata || {});
+        setDrawerEditMetadata({ ...(record.metadata || {}) });
+        setDrawerEditing(false);
+        setDrawerOpen(true);
+        setDrawerEditingKey(record.key); 
+    };
+    // 抽屉编辑
+    const handleDrawerSave = () => {
+        // 更新data
+        const newData = [...data];
+        const updateRow = (rows: DataRow[]): boolean => {
+            for (let i = 0; i < rows.length; i++) {
+                if (rows[i].key === drawerEditingKey) {
+                    rows[i] = {
+                        ...rows[i],
+                        desc: drawerEditDesc,
+                        metadata: { ...drawerEditMetadata },
+                    };
+                    return true;
+                }
+                if (rows[i].children && updateRow(rows[i].children as DataRow[]))
+                    return true;
+            }
+            return false;
+        };
+        updateRow(newData);
+        setData(newData);
+        setDesc(drawerEditDesc);
+        setMetadata({ ...drawerEditMetadata });
+        setDrawerEditing(false);
+    };
+    
+    // 增加详情按钮列
+    columnsConfig.push({
+        title: "操作",
+        key: "action",
+        dataIndex: "action",
+        width: 60,
+        onHeaderCell: () => ({width: 60}),
+        onCell: (record: DataRow) => ({
+            record,
+            dataIndex: "action",
+            title: "操作",
+            editing: false,
+            onClick: () => { },
+            style: { cursor: "pointer" },
+        }),
+        render: (_: any, record: DataRow) =>
+            // 本行任意列在编辑状态时，显示保存和取消按钮
+            isEditing(record) ? (
+                <span>
+                    <a onClick={() => showDrawer(record)}
+                        style={{ marginRight: 8 }}>详情</a>
+                    <a onClick={() => save(record.key)} 
+                        style={{ marginRight: 8 }}>保存</a>
+                    <a onClick={cancel} 
+                        style={{ marginRight: 8 }}>取消</a>
+                </span>
+            ) : (
+                <>
+                    <a onClick={() => showDrawer(record)}>详情</a>
+                </>
+            ),
+    });
+
+    // --------------------------------------------------
+    // 抽屉页面内容
     const drawerContent = (
         <Drawer
             title="详情"
@@ -568,6 +552,9 @@ export default function Home() {
             </div>
         </Drawer>
     );
+
+    // --------------------------------------------------
+    // 最后页面内容的组织
     // --------------------------------------------------
     const addTheme = (e: React.JSX.Element) => {
         return (
