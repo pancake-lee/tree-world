@@ -112,6 +112,15 @@ Exception in thread "main" java.lang.RuntimeException: missing swagger input or 
         at io.swagger.codegen.SwaggerCodegen.main(SwaggerCodegen.java:35)
 ```
 
+## TODO
+
+- 创建任务，Enter/Tab快捷键，行头悬浮加号
+- 删除按钮，del快捷键，二次确认Del/Esc，两次del可删除
+- 方向键选中单元格
+- 空格键展开/折叠快捷键（和vscode一致）
+- F2进入编辑，Esc退出编辑
+- F3打开/收起抽屉，不用为抽屉内行为再开发快捷键了
+
 ## CommitLint
 
 `https://github.com/conventional-changelog/commitlint/`
