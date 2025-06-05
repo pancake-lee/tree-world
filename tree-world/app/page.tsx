@@ -206,14 +206,14 @@ export default function Home() {
         form.setFieldsValue({ ...record });
         setEditingDataIndex(dataIndex);
     };
-    
+
     const isEditing = (record: DataRow) => record.key === editingKey;
-    const isEditingCol = (record: DataRow,dataIndex: string) => 
+    const isEditingCol = (record: DataRow, dataIndex: string) =>
         isEditing(record) && editingDataIndex === dataIndex
-    const cancel = () => {setEditingKey("");};
+    const cancel = () => { setEditingKey(""); };
     const save = async (key: string) => {
         const row = (await form.validateFields()) as DataRow;
-        const curRow = getRowByKey(data, key); 
+        const curRow = getRowByKey(data, key);
         const newRow = await updateTask({ ...row, id: curRow!.id });
         Object.assign(curRow!, newRow);
 
@@ -226,49 +226,66 @@ export default function Home() {
     // --------------------------------------------------
     // 配置列，包括列头和单元格，上面定义了很多属性，都将设置到列配置中
     // --------------------------------------------------
-    const columnsConfig = columns.map((col: ColumnMeta) => ({
-        ...col,
-        width: getColWidth(colWidths[col.key as keyof typeof colWidths]),
-        onHeaderCell: () => ({
-            ...getColumnsResizeProps(col),
-            ...getColumnsDragProps(col),
-        }),
-        ...(!col.enableSearch ? {} : // 根据列属性开启搜索
-            getColumnSearchProps<DataRow>(
-                col.dataIndex as keyof DataRow,
-                col.title as string
-            )),
+
+    // 在最前面插入一个空白选中列，任务列（如name/task）仍为树展开列
+    // 选中行的 key 状态
+    const [selectedRowKey, setSelectedRowKey] = useState<string | null>(null);
+    const selectColumn = {
+        title: "",
+        key: "select",
+        dataIndex: "select",
+        width: 36,
+        onHeaderCell: () => ({ width: 36 }),
+        render: (_: any, record: DataRow) => null,
         onCell: (record: DataRow) => ({
-            record,
-            dataIndex: col.dataIndex,
-            title: col.title,
-            editing: isEditingCol(record, col.dataIndex),
-            onClick: () => {
-                setEditing(record, col.dataIndex);// 点击单元格进入编辑状态
+            onClick: (e: React.MouseEvent) => {
+                e.stopPropagation();
+                setSelectedRowKey(record.key);
             },
-            style: { cursor: "pointer" },
+            style: { cursor: "pointer", background: record.key === selectedRowKey ? "#1890ff22" : undefined },
         }),
-        render: (text: any, record: DataRow) =>
-            // 如果不是编辑状态，渲染文本，否则渲染输入框
-            !isEditingCol(record, col.dataIndex) ? (text):
-            (
-                <Form.Item
-                    name={col.dataIndex}
-                    style={{ margin: 0 }}
-                    rules={[{ required: false }]}
-                >
-                    <Input
-                        autoFocus
-                        onPressEnter={() => save(record.key)}
-                        onBlur={() => save(record.key)}
-                    />
-                </Form.Item>
-            ),
-    }));
+    };
+
+    const columnsConfig = [
+        selectColumn,
+        ...columns.map((col: ColumnMeta) => ({
+            ...col,
+            width: getColWidth(colWidths[col.key as keyof typeof colWidths]),
+            onHeaderCell: () => ({
+                ...getColumnsResizeProps(col),
+                ...getColumnsDragProps(col),
+            }),
+            ...(!col.enableSearch ? {} : getColumnSearchProps<DataRow>(col.dataIndex as keyof DataRow, col.title as string)),
+            onCell: (record: DataRow) => ({
+                record,
+                dataIndex: col.dataIndex,
+                title: col.title,
+                editing: isEditingCol(record, col.dataIndex),
+                onClick: () => {
+                    setEditing(record, col.dataIndex);
+                },
+                style: { cursor: "pointer" },
+            }),
+            render: (text: any, record: DataRow) =>
+                !isEditingCol(record, col.dataIndex) ? (text) : (
+                    <Form.Item
+                        name={col.dataIndex}
+                        style={{ margin: 0 }}
+                        rules={[{ required: false }]}
+                    >
+                        <Input
+                            autoFocus
+                            onPressEnter={() => save(record.key)}
+                            onBlur={() => save(record.key)}
+                        />
+                    </Form.Item>
+                ),
+        }))
+    ];
 
     // --------------------------------------------------
     // 增加列头之间的分割线，支持拖拽，最后调用“之前设置的”onResize方法
-    const components = { 
+    const components = {
         header: {
             cell: (props: any) => {
                 const { onResize, width, ...restProps } = props;
@@ -326,36 +343,45 @@ export default function Home() {
 
     // 这个选中并不是特别舒服，不能shift批量选中，不能选中所有子
     // 我自己也没想清楚需要怎么样的选中逻辑
-    // 其实有时候想要选中子，又有时候不想
+    // 其实有时候想要选中子，又有时候不想，最后自己用空列做了选择点击位置
     // rowSelection objects indicates the need for row selection
     type TableRowSelection<T extends object = object> = TableProps<T>['rowSelection'];
     const rowSelection: TableRowSelection<DataRow> = {
-    onChange: (selectedRowKeys, selectedRows) => {
-        console.log(`selectedRowKeys: ${selectedRowKeys}`, 'selectedRows: ', selectedRows);
-    },
-    onSelect: (record, selected, selectedRows) => {
-        console.log(record, selected, selectedRows);
-    },
-    onSelectAll: (selected, selectedRows, changeRows) => {
-        console.log(selected, selectedRows, changeRows);
-    },
+        onChange: (selectedRowKeys, selectedRows) => {
+            console.log(`selectedRowKeys: ${selectedRowKeys}`, 'selectedRows: ', selectedRows);
+        },
+        onSelect: (record, selected, selectedRows) => {
+            console.log(record, selected, selectedRows);
+        },
+        onSelectAll: (selected, selectedRows, changeRows) => {
+            console.log(selected, selectedRows, changeRows);
+        },
     };
 
     const [dragOverInfo, setDragOverInfo] = useState<{
         key: string;
         position: "before" | "after" | "child";
     } | null>(null);
+
+    // 查找第一个有 expandColumn 属性的列，否则返回 1（通常为任务列/树展开列）
+    let expandColIdx = columnsConfig.findIndex((col: any) => col.expandColumn)
+    if (expandColIdx === -1) {
+        expandColIdx = 1; // 默认第二列为树展开列
+    }
+
     const tableContent = (
         <Table
             columns={columnsConfig}
+            expandable={{ expandIconColumnIndex: expandColIdx }} // 设置第二列为树展开列
             dataSource={data}
-            rowSelection={{...rowSelection}}
+            // rowSelection={{...rowSelection}} // 这个选择框不好用
             pagination={false}
             rowKey="key"
             scroll={{ x: "max-content", y: "89vh" }}
             style={{ width: "max-content" }}
             components={components}
             rowClassName={(record: DataRow) => {
+                if (record.key === selectedRowKey) return "selected-row";
                 if (dragOverInfo && record.key === dragOverInfo.key) {
                     if (dragOverInfo.position === "before") return "drag-before";
                     if (dragOverInfo.position === "after") return "drag-after";
@@ -364,6 +390,7 @@ export default function Home() {
                 return "";
             }}
             onRow={(record: DataRow) => ({
+                onClick: () => setSelectedRowKey(record.key),
                 draggable: true,
                 onDragStart: (e: React.DragEvent) => {
                     e.dataTransfer.setData("text/plain", record.key);
@@ -421,7 +448,7 @@ export default function Home() {
     const [metadata, setMetadata] = useState<Record<string, string>>({});
     // 编辑用的
     const [drawerEditDesc, setDrawerEditDesc] = useState<string>("");
-    const [drawerEditMetadata, setDrawerEditMetadata] = 
+    const [drawerEditMetadata, setDrawerEditMetadata] =
         useState<Record<string, string>>({});
 
     const showDrawer = (record: DataRow) => {
@@ -431,15 +458,16 @@ export default function Home() {
         setDrawerEditMetadata({ ...(record.metadata || {}) });
         setDrawerEditing(false);
         setDrawerOpen(true);
-        setDrawerEditingKey(record.key); 
+        setDrawerEditingKey(record.key);
     };
     // 抽屉编辑
-    const handleDrawerSave =async () => {
-        const curRow = getRowByKey(data, drawerEditingKey); 
-        const newRow = await updateTask({ ...curRow, id: curRow!.id,
+    const handleDrawerSave = async () => {
+        const curRow = getRowByKey(data, drawerEditingKey);
+        const newRow = await updateTask({
+            ...curRow, id: curRow!.id,
             desc: drawerEditDesc,
             metadata: { ...drawerEditMetadata },
-         });
+        });
         Object.assign(curRow!, newRow);
 
         setData(data);
@@ -447,7 +475,7 @@ export default function Home() {
         setMetadata({ ...drawerEditMetadata });
         setDrawerEditing(false);
     };
-    
+
     // --------------------------------------------------
     // 删除相关
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -506,7 +534,7 @@ export default function Home() {
             dataIndex: "action",
             title: "操作",
             editing: false,
-            onClick: () => {},
+            onClick: () => { },
             style: { cursor: "pointer" },
         }),
         render: (_: any, record: DataRow) =>
@@ -515,17 +543,17 @@ export default function Home() {
                 <span>
                     <a onClick={() => showDrawer(record)}
                         style={{ marginRight: 8 }}>详情</a>
-                    <a onClick={() => handleDeleteClick(record)} 
+                    <a onClick={() => handleDeleteClick(record)}
                         style={{ marginRight: 8, color: 'red' }}>删除</a>
-                    <a onClick={() => save(record.key)} 
+                    <a onClick={() => save(record.key)}
                         style={{ marginRight: 8 }}>保存</a>
-                    <a onClick={cancel} 
+                    <a onClick={cancel}
                         style={{ marginRight: 8 }}>取消</a>
                 </span>
             ) : (
                 <>
                     <a onClick={() => showDrawer(record)}>详情</a>
-                    <a onClick={() => handleDeleteClick(record)} 
+                    <a onClick={() => handleDeleteClick(record)}
                         style={{ marginRight: 8, color: 'red' }}>删除</a>
                 </>
             ),
@@ -627,7 +655,7 @@ export default function Home() {
             maskClosable={false}
             keyboard={false}
         >
-            <div>删除后数据不可恢复，是否继续？<br/>（可按 Del 确认，Esc 取消）</div>
+            <div>删除后数据不可恢复，是否继续？<br />（可按 Del 确认，Esc 取消）</div>
         </Modal>
     );
 
@@ -680,6 +708,10 @@ export default function Home() {
         /* 中间区域显示行背景高亮 */
         tr.drag-child {
           background-color: rgba(24,144,255,0.2);
+        }
+        /* 选中行高亮 */
+        tr.selected-row td {
+          background: #1890ff22 !important;
         }
       `}</style>
                 {e}
