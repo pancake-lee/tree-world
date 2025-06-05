@@ -20,6 +20,7 @@ import {
     ConfigProvider,
     theme,
     Modal,
+    TableProps,
 } from "antd";
 import {
     ColumnMeta,
@@ -320,8 +321,22 @@ export default function Home() {
     };
 
     // --------------------------------------------------
-    // 表格内容，支持拖拽排序
+    // 表格内容，支持：行选择，拖拽排序
     // --------------------------------------------------
+    // rowSelection objects indicates the need for row selection
+    type TableRowSelection<T extends object = object> = TableProps<T>['rowSelection'];
+    const rowSelection: TableRowSelection<DataRow> = {
+    onChange: (selectedRowKeys, selectedRows) => {
+        console.log(`selectedRowKeys: ${selectedRowKeys}`, 'selectedRows: ', selectedRows);
+    },
+    onSelect: (record, selected, selectedRows) => {
+        console.log(record, selected, selectedRows);
+    },
+    onSelectAll: (selected, selectedRows, changeRows) => {
+        console.log(selected, selectedRows, changeRows);
+    },
+    };
+
     const [dragOverInfo, setDragOverInfo] = useState<{
         key: string;
         position: "before" | "after" | "child";
@@ -330,6 +345,7 @@ export default function Home() {
         <Table
             columns={columnsConfig}
             dataSource={data}
+            rowSelection={{...rowSelection}}
             pagination={false}
             rowKey="key"
             scroll={{ x: "max-content", y: "89vh" }}
