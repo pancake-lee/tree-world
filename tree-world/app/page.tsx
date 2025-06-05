@@ -412,27 +412,15 @@ export default function Home() {
         setDrawerEditingKey(record.key); 
     };
     // 抽屉编辑
-    const handleDrawerSave = () => {
-        // 更新data
-        const newData = [...data];
-        const updateRow = (rows: DataRow[]): boolean => {
-            for (let i = 0; i < rows.length; i++) {
-                if (rows[i].key === drawerEditingKey) {
-                    rows[i] = {
-                        ...rows[i],
-                        desc: drawerEditDesc,
-                        metadata: { ...drawerEditMetadata },
-                    };
-                    // TODO 调用后端接口
-                    return true;
-                }
-                if (rows[i].children && updateRow(rows[i].children as DataRow[]))
-                    return true;
-            }
-            return false;
-        };
-        updateRow(newData);
-        setData(newData);
+    const handleDrawerSave =async () => {
+        const curRow = getRowByKey(data, drawerEditingKey); 
+        const newRow = await updateTask({ ...curRow, id: curRow!.id,
+            desc: drawerEditDesc,
+            metadata: { ...drawerEditMetadata },
+         });
+        Object.assign(curRow!, newRow);
+
+        setData(data);
         setDesc(drawerEditDesc);
         setMetadata({ ...drawerEditMetadata });
         setDrawerEditing(false);
