@@ -14,6 +14,7 @@ export type ColumnMeta = {
     dataIndex: string;
     key: string;
     enableSearch?: boolean; // 是否启用搜索
+    expandColumn?: boolean; // 是否为展开列
 };
 
 // 行数据结构
@@ -30,7 +31,8 @@ export type DataRow = {
 
 export async function getTableColumns(): Promise<ColumnMeta[]> {
     const columns: ColumnMeta[] = [
-        { title: "任务", dataIndex: "task", key: "task", enableSearch: true },
+        { title: "任务", dataIndex: "task", key: "task",
+            enableSearch: true, expandColumn: true },
         { title: "状态", dataIndex: "status", key: "status" },
         { title: "估时", dataIndex: "estimate", key: "estimate" },
         { title: "开始", dataIndex: "start", key: "start" },
