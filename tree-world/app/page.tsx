@@ -19,6 +19,7 @@ import {
     message,
     ConfigProvider,
     theme,
+    Modal,
 } from "antd";
 import {
     ColumnMeta,
@@ -28,6 +29,7 @@ import {
     getTableColumns,
     getTaskList,
     updateTask,
+    deleteTaskByIDList,
 } from "./tableData";
 import "antd/dist/reset.css";
 import { SearchOutlined } from "@ant-design/icons";
@@ -426,19 +428,65 @@ export default function Home() {
         setDrawerEditing(false);
     };
     
-    // 增加详情按钮列
+    // --------------------------------------------------
+    // 删除相关
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [deleteTargetKey, setDeleteTargetKey] = useState<string>("");
+
+    // 删除按钮点击
+    const handleDeleteClick = (record: DataRow) => {
+        setDeleteTargetKey(record.key);
+        setDeleteModalOpen(true);
+    };
+    // 确认删除
+    const handleDeleteConfirm = async () => {
+        const curRow = getRowByKey(data, deleteTargetKey);
+        if (!curRow) return;
+        try {
+            await deleteTaskByIDList([curRow.id]);
+            setDeleteModalOpen(false);
+            setDeleteTargetKey("");
+            // 刷新数据
+            const newData = await getTaskList();
+            setData(newData);
+            message.success("删除成功");
+        } catch (e) {
+            message.error("删除失败");
+        }
+    };
+    // 取消删除
+    const handleDeleteCancel = () => {
+        setDeleteModalOpen(false);
+        setDeleteTargetKey("");
+    };
+    // 快捷键支持
+    useEffect(() => {
+        if (!deleteModalOpen) return;
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "Delete") {
+                handleDeleteConfirm();
+            } else if (e.key === "Escape") {
+                handleDeleteCancel();
+            }
+        };
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+    }, [deleteModalOpen]);
+
+    // --------------------------------------------------
+    // 增加详情和删除按钮列
     columnsConfig.push({
         title: "操作",
         key: "action",
         dataIndex: "action",
-        width: 60,
-        onHeaderCell: () => ({width: 60}),
+        width: 100,
+        onHeaderCell: () => ({ width: 100 }),
         onCell: (record: DataRow) => ({
             record,
             dataIndex: "action",
             title: "操作",
             editing: false,
-            onClick: () => { },
+            onClick: () => {},
             style: { cursor: "pointer" },
         }),
         render: (_: any, record: DataRow) =>
@@ -447,6 +495,8 @@ export default function Home() {
                 <span>
                     <a onClick={() => showDrawer(record)}
                         style={{ marginRight: 8 }}>详情</a>
+                    <a onClick={() => handleDeleteClick(record)} 
+                        style={{ marginRight: 8, color: 'red' }}>删除</a>
                     <a onClick={() => save(record.key)} 
                         style={{ marginRight: 8 }}>保存</a>
                     <a onClick={cancel} 
@@ -455,6 +505,8 @@ export default function Home() {
             ) : (
                 <>
                     <a onClick={() => showDrawer(record)}>详情</a>
+                    <a onClick={() => handleDeleteClick(record)} 
+                        style={{ marginRight: 8, color: 'red' }}>删除</a>
                 </>
             ),
     });
@@ -543,6 +595,23 @@ export default function Home() {
     );
 
     // --------------------------------------------------
+    // 删除确认弹窗
+    const deleteModal = (
+        <Modal
+            open={deleteModalOpen}
+            title="是否确认删除"
+            onOk={handleDeleteConfirm}
+            onCancel={handleDeleteCancel}
+            okText="确认"
+            cancelText="取消"
+            maskClosable={false}
+            keyboard={false}
+        >
+            <div>删除后数据不可恢复，是否继续？<br/>（可按 Del 确认，Esc 取消）</div>
+        </Modal>
+    );
+
+    // --------------------------------------------------
     // 最后页面内容的组织
     // --------------------------------------------------
     const addTheme = (e: React.JSX.Element) => {
@@ -615,6 +684,7 @@ export default function Home() {
                             {tableContent}
                         </Form>
                         {drawerContent}
+                        {deleteModal}
                     </>
                 )}
             </div>
