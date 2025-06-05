@@ -323,6 +323,10 @@ export default function Home() {
     // --------------------------------------------------
     // 表格内容，支持：行选择，拖拽排序
     // --------------------------------------------------
+
+    // 这个选中并不是特别舒服，不能shift批量选中，不能选中所有子
+    // 我自己也没想清楚需要怎么样的选中逻辑
+    // 其实有时候想要选中子，又有时候不想
     // rowSelection objects indicates the need for row selection
     type TableRowSelection<T extends object = object> = TableProps<T>['rowSelection'];
     const rowSelection: TableRowSelection<DataRow> = {
