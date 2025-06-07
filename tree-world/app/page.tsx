@@ -40,6 +40,7 @@ import { SearchOutlined } from "@ant-design/icons";
 import type { ColumnType } from "antd/es/table";
 
 const COLUMN_WIDTH_KEY = "tree-table-column-widths";
+const EXPANDED_KEYS_KEY = "tree-table-expanded-keys";
 const minColumnWidth = 60; // 最小列宽
 
 function getColWidth(w: number | undefined): number {
@@ -234,9 +235,28 @@ export default function Home() {
     // 在最前面插入一个空白选中列，任务列（如name/task）仍为树展开列
     // 选中行的 key 状态
     const [selectedRowKey, setSelectedRowKey] = useState<string | null>(null);
-    // 展开状态管理
-    const [expandedRowKeys, setExpandedRowKeys] = useState<string[]>([]);
-    
+    // 展开状态管理 - 添加持久化
+    const [expandedRowKeys, setExpandedRowKeys] = useState<string[]>(() => {
+        if (typeof window !== "undefined") {
+            const saved = localStorage.getItem(EXPANDED_KEYS_KEY);
+            if (saved) {
+                try {
+                    return JSON.parse(saved);
+                } catch {
+                    return [];
+                }
+            }
+        }
+        return [];
+    });
+
+    // 持久化展开状态
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            localStorage.setItem(EXPANDED_KEYS_KEY, JSON.stringify(expandedRowKeys));
+        }
+    }, [expandedRowKeys]);
+
     const selectColumn = {
         title: "",
         key: "select",
