@@ -114,7 +114,6 @@ Exception in thread "main" java.lang.RuntimeException: missing swagger input or 
 
 ## TODO
 
-- 创建任务，Enter/Tab快捷键，行头悬浮加号
 - 方向键选中单元格
 - 空格键展开/折叠被选中单元格对应的树节点（和vscode一致）
 - F2进入编辑，Esc退出编辑
@@ -122,7 +121,8 @@ Exception in thread "main" java.lang.RuntimeException: missing swagger input or 
 
 最近完成的TODO
 
-- 删除按钮，二次确认Del/Esc，支持快捷键
+- 创建任务，支持Enter/Tab快捷键，并且选中新任务
+- 删除按钮，支持Del快捷键，二次确认Del/Esc，支持快捷键，并且选中删除位置最近任务
 
 ## CommitLint
 

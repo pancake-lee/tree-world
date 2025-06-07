@@ -56,6 +56,49 @@ export function getRowByKey(data: DataRow[], key: string): DataRow | null {
     return null;
 }
 
+export function getParentByKey(data: DataRow[], key: string): DataRow | null {
+    const row = getRowByKey(data, key);
+    if (!row) return null;
+    const parentId = row.parentID;
+
+    const getParent = (rows: DataRow[], parentId :number):DataRow|null => {
+        for (let i = 0; i < rows.length; i++) {
+            if (rows[i].id == parentId) {
+                return rows[i];
+            }
+            if (rows[i].children) {
+                const childRow = getParent(rows[i].children!, parentId );
+                if (childRow) {
+                    return childRow;
+                }
+            }
+        }
+        return null;
+    }
+    return getParent(data, parentId);
+}
+export function getSiblingsByKey (data: DataRow[], key: string):DataRow[] {
+    const row = getRowByKey(data, key);
+    if (!row) return [];
+    const parentId = row.parentID;
+
+    const getSiblings = (rows: DataRow[]):DataRow[] => {
+            if (!rows || rows.length === 0) return [];
+            if (rows[0].parentID == parentId){
+                return rows
+            }
+            for (const r of rows) {
+                if (r.children && r.children.length > 0) {
+                    const siblings = getSiblings(r.children);
+                    if (siblings.length > 0) return siblings;
+                }
+            }
+            return [];
+        }
+    return getSiblings(data); 
+}
+
+
 // 更新行排序，根据拖拽位置调整节点顺序
 export async function updateRowOrder(
     data: DataRow[],
@@ -165,7 +208,8 @@ const apiInstance = new TaskCURDApi(configuration);
 export async function getTaskList(): Promise<DataRow[]> {
     const { status, data } = await apiInstance.taskCURDGetTaskList();
     if (status !== 200) {
-        throw new Error(`GetTaskList failed with status: ${status}`);
+        console.log(`GetTaskList failed with status: ${status}`);
+        return []; 
     }
     const response = data as ApiGetTaskListResponse;
     if (!response || !response.taskList) {
@@ -255,7 +299,8 @@ export async function createTask(
 
     const { status, data } = await apiInstance.taskCURDAddTask(apiAddTaskRequest);
     if (status !== 200) {
-        throw new Error(`AddTask failed with status: ${status}`);
+        console.log(`AddTask failed with status: ${status}`);
+        return undefined; 
     }
     const response = data as ApiAddTaskResponse;
     return DTO2VO_ApiTaskInfo(response.task);
@@ -265,7 +310,8 @@ export async function createTask(
 export async function deleteTaskByIDList(idList: number[]): Promise<void> {
     const { status } = await apiInstance.taskCURDDelTaskByIDList(idList);
     if (status !== 200) {
-        throw new Error(`DeleteTask failed with status: ${status}`);
+        console.log(`DeleteTask failed with status: ${status}`);
+        return undefined; 
     }
     return;
 }
@@ -280,10 +326,9 @@ export async function updateTask(
 
     const { status, data } = await apiInstance.taskCURDUpdateTask(req);
     if (status !== 200) {
-        console.log("update api failed");
-        throw new Error(`UpdateTask failed with status: ${status}`);
+        console.log(`updateTask failed with status: ${status}`);
+        return undefined; 
     }
     const response = data as ApiUpdateTaskResponse;
-    console.log("update api success : ", response.task);
     return DTO2VO_ApiTaskInfo(response.task);
 }
