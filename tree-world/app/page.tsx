@@ -235,6 +235,10 @@ export default function Home() {
     // 在最前面插入一个空白选中列，任务列（如name/task）仍为树展开列
     // 选中行的 key 状态
     const [selectedRowKey, setSelectedRowKey] = useState<string | null>(null);
+    // 单元格选中状态管理
+    const [selectedCellKey, setSelectedCellKey] = useState<string | null>(null);
+    const [selectedCellDataIndex, setSelectedCellDataIndex] = useState<string | null>(null);
+    
     // 展开状态管理 - 添加持久化
     const [expandedRowKeys, setExpandedRowKeys] = useState<string[]>(() => {
         if (typeof window !== "undefined") {
@@ -278,6 +282,27 @@ export default function Home() {
         const handleKeyDown = async (e: KeyboardEvent) => {
             if (!selectedRowKey) return;
             
+            // F2 键进入选中单元格的编辑状态
+            if (e.key === "F2") {
+                e.preventDefault();
+                if (selectedCellKey && selectedCellDataIndex) {
+                    const selectedRow = getRowByKey(data, selectedCellKey);
+                    if (selectedRow) {
+                        setEditing(selectedRow, selectedCellDataIndex);
+                    }
+                } else {
+                    // 如果没有选中单元格，默认编辑第一个可编辑列
+                    const selectedRow = getRowByKey(data, selectedRowKey);
+                    if (selectedRow && columns.length > 0) {
+                        const firstEditableCol = columns[0];
+                        setEditing(selectedRow, firstEditableCol.dataIndex);
+                        setSelectedCellKey(selectedRowKey);
+                        setSelectedCellDataIndex(firstEditableCol.dataIndex);
+                    }
+                }
+                return;
+            }
+            
             // Enter 键创建兄弟节点
             if (e.key === "Enter") {
                 e.preventDefault();
@@ -300,7 +325,7 @@ export default function Home() {
 
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [selectedRowKey, data]);
+    }, [selectedRowKey, selectedCellKey, selectedCellDataIndex, data, columns]);
 
     // 创建兄弟节点
     const handleCreateTaskAfter = async (currentKey: string) => {
@@ -375,10 +400,37 @@ export default function Home() {
                 dataIndex: col.dataIndex,
                 title: col.title,
                 editing: isEditingCol(record, col.dataIndex),
-                onClick: () => {
+                onClick: (e: React.MouseEvent) => {
+                    e.stopPropagation();
+                    // 如果点击的是已选中的单元格，则进入编辑状态
+                    if (selectedCellKey === record.key && selectedCellDataIndex === col.dataIndex) {
+                        setEditing(record, col.dataIndex);
+                    } else {
+                        // 否则只是选中单元格
+                        setSelectedCellKey(record.key);
+                        setSelectedCellDataIndex(col.dataIndex);
+                        // 保持行选中状态
+                        setSelectedRowKey(record.key);
+                    }
+                },
+                onDoubleClick: (e: React.MouseEvent) => {
+                    e.stopPropagation();
+                    // 双击直接进入编辑状态
+                    setSelectedCellKey(record.key);
+                    setSelectedCellDataIndex(col.dataIndex);
+                    setSelectedRowKey(record.key);
                     setEditing(record, col.dataIndex);
                 },
-                style: { cursor: "pointer" },
+                style: { 
+                    cursor: "pointer",
+                    // 单元格选中高亮
+                    background: selectedCellKey === record.key && selectedCellDataIndex === col.dataIndex 
+                        ? "#1890ff44" 
+                        : undefined,
+                    border: selectedCellKey === record.key && selectedCellDataIndex === col.dataIndex 
+                        ? "2px solid #1890ff" 
+                        : undefined,
+                },
             }),
             render: (text: any, record: DataRow) =>
                 !isEditingCol(record, col.dataIndex) ? (text) : (
@@ -691,8 +743,13 @@ export default function Home() {
             dataIndex: "action",
             title: "操作",
             editing: false,
-            onClick: () => { },
-            style: { cursor: "pointer" },
+            onClick: (e: React.MouseEvent) => { 
+                e.stopPropagation();
+                // 操作列不参与单元格选中逻辑，只设置行选中
+                setSelectedRowKey(record.key);
+            },
+            onDoubleClick: (e: React.MouseEvent) => {},
+            style: { cursor: "pointer",background:undefined,border:undefined},
         }),
         render: (_: any, record: DataRow) =>
             // 本行任意列在编辑状态时，显示保存和取消按钮
@@ -869,6 +926,10 @@ export default function Home() {
         /* 选中行高亮 */
         tr.selected-row td {
           background: #1890ff22 !important;
+        }
+        /* 单元格选中状态的特殊样式 */
+        .ant-table-tbody > tr > td {
+          transition: all 0.2s ease;
         }
       `}</style>
                 {e}
