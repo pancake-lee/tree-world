@@ -26,11 +26,14 @@ import {
     ColumnMeta,
     DataRow,
     getRowByKey,
+    getParentByKey,
+    getSiblingsByKey,
     updateRowOrder,
     getTableColumns,
     getTaskList,
     updateTask,
     deleteTaskByIDList,
+    createTask,
 } from "./tableData";
 import "antd/dist/reset.css";
 import { SearchOutlined } from "@ant-design/icons";
@@ -223,6 +226,7 @@ export default function Home() {
         setEditingKey("");
     };
 
+
     // --------------------------------------------------
     // 配置列，包括列头和单元格，上面定义了很多属性，都将设置到列配置中
     // --------------------------------------------------
@@ -230,6 +234,9 @@ export default function Home() {
     // 在最前面插入一个空白选中列，任务列（如name/task）仍为树展开列
     // 选中行的 key 状态
     const [selectedRowKey, setSelectedRowKey] = useState<string | null>(null);
+    // 展开状态管理
+    const [expandedRowKeys, setExpandedRowKeys] = useState<string[]>([]);
+    
     const selectColumn = {
         title: "",
         key: "select",
@@ -245,7 +252,94 @@ export default function Home() {
             style: { cursor: "pointer", background: record.key === selectedRowKey ? "#1890ff22" : undefined },
         }),
     };
+    // --------------------------------------------------
+    // 键盘快捷键支持
+    useEffect(() => {
+        const handleKeyDown = async (e: KeyboardEvent) => {
+            if (!selectedRowKey) return;
+            
+            // Enter 键创建兄弟节点
+            if (e.key === "Enter") {
+                e.preventDefault();
+                await handleCreateTaskAfter(selectedRowKey);
+            }
+            // Tab 键创建子任务
+            if (e.key === "Tab") {
+                e.preventDefault();
+                await handleCreateTaskChild(selectedRowKey);
+            }
+            // Delete 键删除选中节点
+            if (e.key === "Delete") {
+                e.preventDefault();
+                const selectedRow = getRowByKey(data, selectedRowKey);
+                if (selectedRow) {
+                    handleDeleteClick(selectedRow);
+                }
+            }
+        };
 
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [selectedRowKey, data]);
+
+    // 创建兄弟节点
+    const handleCreateTaskAfter = async (currentKey: string) => {
+        const currentRow = getRowByKey(data, currentKey);
+        if (!currentRow) return;
+
+            // 创建新任务，设置为当前节点的下一个兄弟
+            const newTask = await createTask({
+                task: "新任务",
+                parentID: currentRow.parentID || 0, // 当前节点的父节点ID
+                prevID: currentRow.id, // 插入在当前节点后
+            });
+            if (!newTask) {
+                message.error("创建任务失败");
+                return;
+            }
+
+            // 重新获取数据以刷新表格
+            const newData = await getTaskList();
+            setData(newData);
+            
+            // 选中新创建的节点
+            const newRow = getRowByKey(newData, newTask!.key);
+            if (newRow) {
+                setSelectedRowKey(newRow.key);
+            }
+    };
+
+    // --------------------------------------------------
+    // 创建子任务
+    const handleCreateTaskChild = async (currentKey: string) => {
+        const currentRow = getRowByKey(data, currentKey);
+        if (!currentRow) return;
+
+        // 创建新任务，设置为当前节点的子节点
+        const newTask = await createTask({
+            task: "新任务",
+            parentID: currentRow.id, // 当前节点作为父节点
+            prevID: 0, // 作为第一个子节点
+        });
+
+        // 重新获取数据以刷新表格
+        const newData = await getTaskList();
+        setData(newData);
+        
+        // 展开父节点（当前选中节点）
+        if (!expandedRowKeys.includes(currentKey)) {
+            setExpandedRowKeys(prev => [...prev, currentKey]);
+        }
+        
+        // 选中新创建的节点
+        const newRow = getRowByKey(newData, newTask!.key);
+        if (newRow) {
+            setSelectedRowKey(newRow.key);
+        }
+    };
+
+    // --------------------------------------------------
+    // 数据列配置
     const columnsConfig = [
         selectColumn,
         ...columns.map((col: ColumnMeta) => ({
@@ -372,7 +466,17 @@ export default function Home() {
     const tableContent = (
         <Table
             columns={columnsConfig}
-            expandable={{ expandIconColumnIndex: expandColIdx }} // 设置第二列为树展开列
+            expandable={{ 
+                expandIconColumnIndex: expandColIdx,
+                expandedRowKeys: expandedRowKeys,
+                onExpand: (expanded, record) => {
+                    if (expanded) {
+                        setExpandedRowKeys(prev => [...prev, record.key]);
+                    } else {
+                        setExpandedRowKeys(prev => prev.filter(key => key !== record.key));
+                    }
+                }
+            }} // 设置第二列为树展开列
             dataSource={data}
             // rowSelection={{...rowSelection}} // 这个选择框不好用
             pagination={false}
@@ -486,20 +590,53 @@ export default function Home() {
         setDeleteTargetKey(record.key);
         setDeleteModalOpen(true);
     };
+
+    // 找到删除节点后应该选中的节点
+    const findNextSelectedNode = (deletedRow: DataRow): string | null => {
+        const siblings = getSiblingsByKey(data, deletedRow.key);
+        
+        const deletedIndex = siblings.findIndex(row => row.key === deletedRow.key);
+        
+        // 优先选择后一个兄弟节点
+        if (deletedIndex < siblings.length - 1) {
+            return siblings[deletedIndex + 1].key;
+        }
+        
+        // 如果没有后一个兄弟节点，选择前一个兄弟节点
+        if (deletedIndex > 0) {
+            return siblings[deletedIndex - 1].key;
+        }
+        
+        // 如果没有兄弟节点，选择父节点
+        const parentRow = getParentByKey(data, deletedRow.key);
+        if (!parentRow) {
+            return null; // 根节点没有父节点
+        }
+        return parentRow.key;
+    };
+
     // 确认删除
     const handleDeleteConfirm = async () => {
         const curRow = getRowByKey(data, deleteTargetKey);
         if (!curRow) return;
-        try {
-            await deleteTaskByIDList([curRow.id]);
-            setDeleteModalOpen(false);
-            setDeleteTargetKey("");
-            // 刷新数据
-            const newData = await getTaskList();
-            setData(newData);
-            message.success("删除成功");
-        } catch (e) {
-            message.error("删除失败");
+    
+        // 在删除前确定下一个要选中的节点
+        const nextSelectedKey = findNextSelectedNode(curRow);
+        
+        await deleteTaskByIDList([curRow.id]);
+        setDeleteModalOpen(false);
+        setDeleteTargetKey("");
+        
+        // 刷新数据
+        const newData = await getTaskList();
+        setData(newData);
+        
+        // 选中最靠近的节点
+        if (nextSelectedKey && getRowByKey(newData, nextSelectedKey)) {
+            setSelectedRowKey(nextSelectedKey);
+        } else {
+            // 如果计算的节点不存在，清空选中状态
+            setSelectedRowKey(null);
         }
     };
     // 取消删除
