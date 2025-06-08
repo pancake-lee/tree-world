@@ -280,6 +280,15 @@ export default function Home() {
     // 键盘快捷键支持
     useEffect(() => {
         const handleKeyDown = async (e: KeyboardEvent) => {
+            // Esc 键退出编辑状态（优先级最高）
+            if (e.key === "Escape") {
+                e.preventDefault();
+                if (editingKey) {
+                    cancel();
+                }
+                return;
+            }
+
             if (!selectedRowKey) return;
             
             // F2 键进入选中单元格的编辑状态
@@ -302,6 +311,9 @@ export default function Home() {
                 }
                 return;
             }
+            
+            // 如果正在编辑，不处理其他快捷键
+            if (editingKey||editingKey!="") return;
             
             // 方向键导航
             if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
@@ -339,7 +351,7 @@ export default function Home() {
 
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [selectedRowKey, selectedCellKey, selectedCellDataIndex, data, columns]);
+    }, [selectedRowKey, selectedCellKey, selectedCellDataIndex, data, columns, editingKey]);
 
     // 方向键导航处理
     const handleArrowKeyNavigation = (
