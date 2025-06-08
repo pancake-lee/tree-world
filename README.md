@@ -115,16 +115,18 @@ Exception in thread "main" java.lang.RuntimeException: missing swagger input or 
 ## TODO
 
 - 空格键展开/折叠被选中单元格对应的树节点（和vscode一致）
-- F2进入编辑，Esc退出编辑
 - F3打开/收起抽屉，不用为抽屉内行为再开发快捷键了
 
 最近完成的TODO
 
 - 创建任务，支持Enter/Tab快捷键，并且选中新任务
-- 删除按钮，支持Del快捷键，二次确认Del/Esc，支持快捷键，并且选中删除位置最近任务
+- 删除按钮，支持Del快捷键
+  - 二次确认Del/Esc，支持快捷键，并且选中删除位置最近任务
+  - 弹框本来就支持Esc关闭，所以没有自定义该快捷键
 - 方向键选中单元格
   - 对于上，需要递归处理“上一个节点”展开时的情况
   - 对于下，需要递归处理“最后一个节点”跳到“父节点的下一个节点”
+- F2进入编辑，Esc退出编辑
 
 ## CommitLint
 
