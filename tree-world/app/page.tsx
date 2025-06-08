@@ -36,7 +36,7 @@ import {
     createTask,
 } from "./tableData";
 import "antd/dist/reset.css";
-import { SearchOutlined } from "@ant-design/icons";
+import { SearchOutlined,CaretRightOutlined } from "@ant-design/icons";
 import type { ColumnType } from "antd/es/table";
 
 const COLUMN_WIDTH_KEY = "tree-table-column-widths";
@@ -311,10 +311,27 @@ export default function Home() {
                 }
                 return;
             }
-            
+
             // 如果正在编辑，不处理其他快捷键
             if (editingKey||editingKey!="") return;
-            
+
+            // 空格键展开/折叠选中节点
+            if (e.key === " ") {
+                e.preventDefault();
+                const selectedRow = getRowByKey(data, selectedRowKey);
+                if (selectedRow&&selectedRow.children&&selectedRow.children.length > 0) {
+                    // 切换展开/折叠状态
+                    if (expandedRowKeys.includes(selectedRowKey)) {
+                        setExpandedRowKeys(prev => prev.filter(key => key !== selectedRowKey));
+                        console.log("折叠节点:", selectedRowKey);
+                    } else {
+                        setExpandedRowKeys(prev => [...prev, selectedRowKey]);
+                        console.log("展开节点:", selectedRowKey);
+                    }
+                }
+                return;
+            }
+
             // 方向键导航
             if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
                 e.preventDefault();
@@ -351,7 +368,7 @@ export default function Home() {
 
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [selectedRowKey, selectedCellKey, selectedCellDataIndex, data, columns, editingKey]);
+    }, [selectedRowKey, selectedCellKey, selectedCellDataIndex, data, columns, editingKey,expandedRowKeys]);
 
     // 方向键导航处理
     const handleArrowKeyNavigation = (
@@ -651,24 +668,6 @@ export default function Home() {
     // --------------------------------------------------
     // 表格内容，支持：行选择，拖拽排序
     // --------------------------------------------------
-
-    // 这个选中并不是特别舒服，不能shift批量选中，不能选中所有子
-    // 我自己也没想清楚需要怎么样的选中逻辑
-    // 其实有时候想要选中子，又有时候不想，最后自己用空列做了选择点击位置
-    // rowSelection objects indicates the need for row selection
-    type TableRowSelection<T extends object = object> = TableProps<T>['rowSelection'];
-    const rowSelection: TableRowSelection<DataRow> = {
-        onChange: (selectedRowKeys, selectedRows) => {
-            console.log(`selectedRowKeys: ${selectedRowKeys}`, 'selectedRows: ', selectedRows);
-        },
-        onSelect: (record, selected, selectedRows) => {
-            console.log(record, selected, selectedRows);
-        },
-        onSelectAll: (selected, selectedRows, changeRows) => {
-            console.log(selected, selectedRows, changeRows);
-        },
-    };
-
     const [dragOverInfo, setDragOverInfo] = useState<{
         key: string;
         position: "before" | "after" | "child";
@@ -692,8 +691,52 @@ export default function Home() {
                     } else {
                         setExpandedRowKeys(prev => prev.filter(key => key !== record.key));
                     }
+                },
+                // 配置子节点字段名，这样表格会自动隐藏没有子节点的展开按钮
+                childrenColumnName: 'children',
+                // 自定义展开图标显示逻辑
+                expandIcon: ({ expanded, onExpand, record }) => {
+                    // 检查是否有子节点
+                    const hasChildren = record.children && record.children.length > 0;
+                    if (!hasChildren) {
+                        // 没有子节点时返回空的占位元素
+                        return <span style={{ width: 14, height: 14, display: 'inline-block' }} />;
+                    }
+                    // 有子节点时显示默认的展开图标
+                    return (
+                         <CaretRightOutlined
+                            style={{
+                            transform: expanded ? 'rotate(90deg)' : 'none',
+                            transition: 'transform 0.3s',
+                            }}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onExpand(record, e);
+                            }}
+                        />
+                        // <span
+                        //     style={{
+                        //         cursor: 'pointer',
+                        //         userSelect: 'none',
+                        //         width: 14,
+                        //         height: 14,
+                        //         display: 'inline-block',
+                        //         textAlign: 'center',
+                        //         lineHeight: '12px',
+                        //         fontSize: 14,
+                        //         color: '#1890ff',
+                        //         border: '1px solid #1890ff',
+                        //     }}
+                        //     onClick={(e) => {
+                        //         e.stopPropagation();
+                        //         onExpand(record, e);
+                        //     }}
+                        // >
+                        //     {expanded ? '−' : '+'}
+                        // </span>
+                    );
                 }
-            }} // 设置第二列为树展开列
+            }}
             dataSource={data}
             // rowSelection={{...rowSelection}} // 这个选择框不好用
             pagination={false}
