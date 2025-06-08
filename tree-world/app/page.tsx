@@ -265,7 +265,7 @@ export default function Home() {
         title: "",
         key: "select",
         dataIndex: "select",
-        width: 36,
+        width: 15,
         onHeaderCell: () => ({ width: 36 }),
         render: (_: any, record: DataRow) => null,
         onCell: (record: DataRow) => ({
@@ -557,7 +557,7 @@ export default function Home() {
     // --------------------------------------------------
     // 数据列配置
     const columnsConfig = [
-        selectColumn,
+        // selectColumn,
         ...columns.map((col: ColumnMeta) => ({
             ...col,
             width: getColWidth(colWidths[col.key as keyof typeof colWidths]),
@@ -607,8 +607,10 @@ export default function Home() {
                 !isEditingCol(record, col.dataIndex) ? (text) : (
                     <Form.Item
                         name={col.dataIndex}
-                        style={{ margin: 0 }}
-                        rules={[{ required: false }]}
+                        style={{ 
+                            margin: -5,
+                            display: 'inline-block',
+                        }}
                     >
                         <Input
                             autoFocus
@@ -709,7 +711,7 @@ export default function Home() {
                     const hasChildren = record.children && record.children.length > 0;
                     if (!hasChildren) {
                         // 没有子节点时返回空的占位元素
-                        return <span style={{ width: 14, height: 14, display: 'inline-block' }} />;
+                        return <span style={{ width: 14, height: 14, display: 'inline-block', marginRight: '3px' }} />;
                     }
                     // 有子节点时显示默认的展开图标
                     return (
@@ -717,6 +719,7 @@ export default function Home() {
                             style={{
                             transform: expanded ? 'rotate(90deg)' : 'none',
                             transition: 'transform 0.3s',
+                            marginRight: '5px'
                             }}
                             onClick={(e) => {
                                 e.stopPropagation();
