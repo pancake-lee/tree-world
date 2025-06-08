@@ -114,7 +114,6 @@ Exception in thread "main" java.lang.RuntimeException: missing swagger input or 
 
 ## TODO
 
-- 空格键展开/折叠被选中单元格对应的树节点（和vscode一致）
 - F3打开/收起抽屉，不用为抽屉内行为再开发快捷键了
 
 最近完成的TODO
@@ -127,6 +126,8 @@ Exception in thread "main" java.lang.RuntimeException: missing swagger input or 
   - 对于上，需要递归处理“上一个节点”展开时的情况
   - 对于下，需要递归处理“最后一个节点”跳到“父节点的下一个节点”
 - F2进入编辑，Esc退出编辑
+- 空格键展开/折叠被选中单元格对应的树节点
+  - 没有子节点的行，不展示“展开按钮”
 
 ## CommitLint
 
