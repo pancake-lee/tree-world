@@ -303,6 +303,20 @@ export default function Home() {
                 return;
             }
             
+            // 方向键导航
+            if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
+                e.preventDefault();
+                const newSelected = handleArrowKeyNavigation(
+                    selectedRowKey,expandedRowKeys,
+                    e.key as "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight");
+                if (newSelected=="") return; 
+                setSelectedRowKey(newSelected);
+                if (selectedCellDataIndex) {
+                    setSelectedCellKey(newSelected);
+                }
+                return;
+            }
+            
             // Enter 键创建兄弟节点
             if (e.key === "Enter") {
                 e.preventDefault();
@@ -327,6 +341,125 @@ export default function Home() {
         return () => window.removeEventListener("keydown", handleKeyDown);
     }, [selectedRowKey, selectedCellKey, selectedCellDataIndex, data, columns]);
 
+    // 方向键导航处理
+    const handleArrowKeyNavigation = (
+        curSelectedRowKey: string, curExpandedRowKeys: string[],
+        direction: "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight",
+    ):string => {
+        // 这里需要递归处理“最后一个兄弟节点”按“下”后向上找“父的下一个兄弟”
+        // 递归时，用setSelectedRowKey不能真正更新状态，所以改成curSelectedRowKey入参
+        // 同理，expandedRowKeys为了变更后控制递归逻辑，需要传入
+
+        if (curSelectedRowKey === null) return curSelectedRowKey;
+        const curRow = getRowByKey(data,curSelectedRowKey);
+        if (curRow === null) return curSelectedRowKey;
+        const siblings = getSiblingsByKey(data, curSelectedRowKey);
+        const indexInSiblings = siblings.findIndex(row => row.key === curSelectedRowKey);
+        if (indexInSiblings === -1) return curSelectedRowKey;
+
+        if (direction === "ArrowUp" || direction === "ArrowDown") {
+            // 上下方向键：移动到上一行或下一行
+            let newRowKey;
+            let newRowIndex;
+            if (direction === "ArrowUp") {
+                newRowIndex = indexInSiblings - 1;
+            } else {
+                newRowIndex = indexInSiblings + 1;
+            }
+
+            if (newRowIndex<0){
+                const parentRow = getParentByKey(data, curSelectedRowKey);
+                if (!parentRow) return curSelectedRowKey;
+                newRowKey = parentRow.key;
+
+            }else if (newRowIndex >= siblings.length) {
+                // 检查当前行是否展开且有子节点
+                if (curExpandedRowKeys.includes(curSelectedRowKey) &&
+                    curRow.children &&
+                    curRow.children.length > 0) {
+                        newRowKey = curRow.children[0].key;
+                } else{
+                    // 先设置为父，然后递归调用“父节点的下一个兄弟节点”
+                    const parentRow = getParentByKey(data, curSelectedRowKey);
+                    if (!parentRow) return "";// 递归到最外层，没有下一个兄弟，就不修改了
+                    newRowKey = parentRow.key;
+
+                    const newRow = getRowByKey(data, newRowKey);
+                    if (!newRow) return curSelectedRowKey;
+
+                    // 递归调用，继续查找下一个兄弟节点
+                    // 要把父节点当作折叠，修改curExpandedRowKeys
+                    const newExpandedRowKeys = curExpandedRowKeys.filter(key => key !== newRow.key);
+                    return handleArrowKeyNavigation(newRow.key,newExpandedRowKeys, direction); 
+                }
+            }else{
+                // TODO 向上时，判断上一个兄弟节点是否展开，定位到最后一个子节点
+                // 然后递归判断该节点是否展开
+                if (direction === "ArrowUp"){
+
+                    newRowKey = siblings[newRowIndex].key;
+                    const newRow = getRowByKey(data, newRowKey);
+                    if (!newRow) return curSelectedRowKey;
+
+                    const getLastRowWithExpanded = (
+                        newRow: DataRow): DataRow => {
+                        if (curExpandedRowKeys.includes(newRow.key) &&
+                            newRow.children &&
+                            newRow.children.length > 0) {
+                            // 如果上一个兄弟节点展开，定位到最后一个子节点
+                            newRow = newRow.children[newRow.children.length - 1];
+                            return getLastRowWithExpanded(newRow);
+                        }
+                        return newRow;
+                    }
+                    return getLastRowWithExpanded(newRow).key;
+                }
+                if (direction === "ArrowDown" &&
+                    curExpandedRowKeys.includes(curSelectedRowKey) &&
+                    curRow.children &&
+                    curRow.children.length > 0) {
+                    newRowKey = curRow.children[0].key;
+                }else{
+                    newRowKey = siblings[newRowIndex].key;
+                }
+            }
+            const newRow = getRowByKey(data, newRowKey);
+            if (!newRow) return curSelectedRowKey;
+            return newRow.key;
+
+        }
+        // } else if (direction === "ArrowLeft" || direction === "ArrowRight") {
+        // 左右方向键：移动到左侧或右侧列
+        if (columns.length <= 0){
+            // 如果没有列定义，直接返回当前行
+            return curSelectedRowKey;
+        }
+        if (!selectedCellDataIndex) {
+            // 如果没有选中单元格，选中第一列或最后一列
+            if (direction === "ArrowLeft") {
+                setSelectedCellDataIndex(columns[0].dataIndex);
+            } else {
+                setSelectedCellDataIndex(columns[columns.length - 1].dataIndex);
+            }
+            return curSelectedRowKey;
+        }
+        
+        const currentColIndex = columns.findIndex(col => col.dataIndex === selectedCellDataIndex);
+        if (currentColIndex === -1) return curSelectedRowKey;
+        
+        let newColIndex;
+        if (direction === "ArrowLeft") {
+            newColIndex = Math.max(0, currentColIndex - 1);
+        } else {
+            newColIndex = Math.min(columns.length - 1, currentColIndex + 1);
+        }
+        
+        const newCol = columns[newColIndex];
+        setSelectedCellDataIndex(newCol.dataIndex);
+        return curSelectedRowKey;
+    };
+
+    // --------------------------------------------------
     // 创建兄弟节点
     const handleCreateTaskAfter = async (currentKey: string) => {
         const currentRow = getRowByKey(data, currentKey);
