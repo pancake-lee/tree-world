@@ -314,6 +314,15 @@ export default function Home() {
 
             // 如果正在编辑，不处理其他快捷键
             if (editingKey||editingKey!="") return;
+            
+            if (e.key === "F3") { // edge是页内搜索
+            // if (e.key === "F2" && e.ctrlKey) {
+                e.preventDefault(); // 阻止默认行为
+                const selectedRow = getRowByKey(data, selectedRowKey);
+                if (!selectedRow) return;
+                showDrawer(selectedRow);
+                return
+            }
 
             // 空格键展开/折叠选中节点
             if (e.key === " ") {
@@ -920,7 +929,7 @@ export default function Home() {
 
     // --------------------------------------------------
     // 增加详情和删除按钮列
-    columnsConfig.push({
+    const opsCol ={
         title: "操作",
         key: "action",
         dataIndex: "action",
@@ -939,27 +948,15 @@ export default function Home() {
             onDoubleClick: (e: React.MouseEvent) => {},
             style: { cursor: "pointer",background:undefined,border:undefined},
         }),
-        render: (_: any, record: DataRow) =>
-            // 本行任意列在编辑状态时，显示保存和取消按钮
-            isEditing(record) ? (
-                <span>
-                    <a onClick={() => showDrawer(record)}
-                        style={{ marginRight: 8 }}>详情</a>
-                    <a onClick={() => handleDeleteClick(record)}
-                        style={{ marginRight: 8, color: 'red' }}>删除</a>
-                    <a onClick={() => save(record.key)}
-                        style={{ marginRight: 8 }}>保存</a>
-                    <a onClick={cancel}
-                        style={{ marginRight: 8 }}>取消</a>
-                </span>
-            ) : (
-                <>
-                    <a onClick={() => showDrawer(record)}>详情</a>
-                    <a onClick={() => handleDeleteClick(record)}
-                        style={{ marginRight: 8, color: 'red' }}>删除</a>
-                </>
-            ),
-    });
+        render: (_: any, record: DataRow) => (
+            <>
+                <a onClick={() => showDrawer(record)}>详情</a>
+                <a onClick={() => handleDeleteClick(record)}
+                    style={{ marginRight: 8, color: 'red' }}>删除</a>
+            </>
+        ),
+    }
+    // columnsConfig.push(opsCol);
 
     // --------------------------------------------------
     // 抽屉页面内容
