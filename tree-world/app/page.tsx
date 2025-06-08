@@ -1135,6 +1135,46 @@ export default function Home() {
             >
                 {mounted && (
                     <>
+                        {/* 快捷键说明 */}
+                        <div
+                            style={{
+                                marginBottom: 16,
+                                padding: "8px 12px",
+                                backgroundColor: "#1f1f1f",
+                                border: "1px solid #434343",
+                                borderRadius: "4px",
+                                fontSize: "12px",
+                                color: "#d9d9d9",
+                                lineHeight: "20px"
+                            }}
+                        >
+                            <strong style={{ color: "#fff", marginRight: 16 }}>快捷键说明：</strong>
+                            <span style={{ marginRight: 16 }}>
+                                <strong style={{ color: "#40a9ff" }}>方向键</strong> 移动光标
+                            </span>
+                            <span style={{ marginRight: 16 }}>
+                                <strong style={{ color: "#40a9ff" }}>空格</strong> 展开/折叠
+                            </span>
+                            <span style={{ marginRight: 16 }}>
+                                <strong style={{ color: "#40a9ff" }}>F2</strong> 编辑
+                            </span>
+                            <span style={{ marginRight: 16 }}>
+                                <strong style={{ color: "#40a9ff" }}>Esc</strong> 取消/返回
+                            </span>
+                            <span style={{ marginRight: 16 }}>
+                                <strong style={{ color: "#40a9ff" }}>F3</strong> 详情
+                            </span>
+                            <span style={{ marginRight: 16 }}>
+                                <strong style={{ color: "#40a9ff" }}>Enter</strong> 创建同级节点
+                            </span>
+                            <span style={{ marginRight: 16 }}>
+                                <strong style={{ color: "#40a9ff" }}>Tab</strong> 创建子节点
+                            </span>
+                            <span style={{ marginRight: 16 }}>
+                                <strong style={{ color: "#40a9ff" }}>Delete</strong> 删除节点
+                            </span>
+                        </div>
+                        
                         <Form form={form} component={false}>
                             {tableContent}
                         </Form>
