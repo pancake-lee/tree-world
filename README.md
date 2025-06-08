@@ -114,8 +114,6 @@ Exception in thread "main" java.lang.RuntimeException: missing swagger input or 
 
 ## TODO
 
-- F3打开/收起抽屉，不用为抽屉内行为再开发快捷键了
-
 最近完成的TODO
 
 - 创建任务，支持Enter/Tab快捷键，并且选中新任务
@@ -128,6 +126,7 @@ Exception in thread "main" java.lang.RuntimeException: missing swagger input or 
 - F2进入编辑，Esc退出编辑
 - 空格键展开/折叠被选中单元格对应的树节点
   - 没有子节点的行，不展示“展开按钮”
+- F3打开/收起抽屉，不用为抽屉内行为再开发快捷键了
 
 ## CommitLint
 
