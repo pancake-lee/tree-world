@@ -128,17 +128,18 @@ Exception in thread "main" java.lang.RuntimeException: missing swagger input or 
   - 没有子节点的行，不展示“展开按钮”
 - F3打开/收起抽屉，不用为抽屉内行为再开发快捷键了
 
-## CommitLint
+## [commitlint](`https://github.com/conventional-changelog/commitlint`)
 
-`https://github.com/conventional-changelog/commitlint/`
-build
-chore
-ci
-docs
-feat
-fix
-perf
-refactor
-revert
-style
-test
+| prefix   | desc       |
+| -------- | ---------- |
+| build    | 构建相关   |
+| chore    | 杂项       |
+| ci       | CI/CD 相关 |
+| docs     | 文档       |
+| feat     | 功能       |
+| fix      | 修复       |
+| perf     | 性能       |
+| refactor | 重构       |
+| revert   | 回退       |
+| style    | 代码风格   |
+| test     | 测试       |
