@@ -55,18 +55,25 @@ export default function Home() {
     }, []);
 
     // 展开状态管理 - 添加持久化
-    const [expandedRowKeys, setExpandedRowKeys] = useState<string[]>(() => {
-        if (typeof window === "undefined") return [];
+    const [expandedRowKeys, setExpandedRowKeys] = useState<string[]>([]);
+
+    // 从 localStorage 加载展开状态
+    useEffect(() => {
         const saved = localStorage.getItem(EXPANDED_KEYS_KEY);
-        if (!saved) return [];
-        try {return JSON.parse(saved);}
-        catch {return [];}
-    });
+        if (saved) {
+            try {
+                setExpandedRowKeys(JSON.parse(saved));
+            } catch {
+                // 忽略解析错误
+            }
+        }
+    }, []);
 
     // 持久化展开状态
     useEffect(() => {
-        if (typeof window === "undefined") return;
-        localStorage.setItem(EXPANDED_KEYS_KEY, JSON.stringify(expandedRowKeys));
+        if (expandedRowKeys.length > 0 || typeof window !== 'undefined') {
+            localStorage.setItem(EXPANDED_KEYS_KEY, JSON.stringify(expandedRowKeys));
+        }
     }, [expandedRowKeys]);
 
     // --------------------------------------------------
@@ -79,23 +86,33 @@ export default function Home() {
         getTableColumns().then((res) => {
             setColumns(res);
         });
-        getAllExpandTaskList(expandedRowKeys, setData).then((res) => {
-            setData(res);
-        });
-    }, []);
+        // 等待 expandedRowKeys 从 localStorage 加载完成后再获取数据
+        if (mounted) {
+            getAllExpandTaskList(expandedRowKeys, setData).then((res) => {
+                setData(res);
+            });
+        }
+    }, [mounted, expandedRowKeys]);
 
     // --------------------------------------------------
     // 列头相关
     // --------------------------------------------------
     // 持久化列宽
-    const [colWidths, setColWidths] = useState<{ [key: string]: number }>(() => {
-        if (typeof window === "undefined") return getColDefaultWidths();
-        const saved = localStorage.getItem(COLUMN_WIDTH_KEY);
-        if (!saved) return getColDefaultWidths();
-        return JSON.parse(saved);
-    });
+    const [colWidths, setColWidths] = useState<{ [key: string]: number }>(getColDefaultWidths());
+    
+    // 从 localStorage 加载列宽
     useEffect(() => {
-        if (typeof window === "undefined") return;
+        const saved = localStorage.getItem(COLUMN_WIDTH_KEY);
+        if (saved) {
+            try {
+                setColWidths(JSON.parse(saved));
+            } catch {
+                // 忽略解析错误，使用默认值
+            }
+        }
+    }, []);
+    
+    useEffect(() => {
         localStorage.setItem(COLUMN_WIDTH_KEY, JSON.stringify(colWidths));
     }, [colWidths]);
 
@@ -248,9 +265,9 @@ export default function Home() {
             ...(!col.enableSearch ? {} : getColumnSearchProps<DataRow>(col.dataIndex as keyof DataRow, col.title as string)),
             onCell: (record: DataRow) => ({
                 record,
-                dataIndex: col.dataIndex,
+                // dataIndex: col.dataIndex,
                 title: col.title,
-                editing: isEditingCol(record, col.dataIndex),
+                editing: isEditingCol(record, col.dataIndex).toString(),
                 onClick: (e: React.MouseEvent) => {
                     e.stopPropagation();
                     // 如果点击的是已选中的单元格，则进入编辑状态
