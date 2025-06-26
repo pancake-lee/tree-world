@@ -1,7 +1,18 @@
 "use client";
 
 import { SetStateAction } from "react";
-import { ColumnMeta, createTask, DataRow, getParentByKey, getRowByKey, getSiblingsByKey, getTaskList } from "./tableData";
+import { 
+    ColumnMeta, 
+    DataRow, 
+    getParentByKey, 
+    getRowByKey, 
+    getSiblingsByKey, 
+} from "./tableData";
+import {
+    createTask, 
+    getAllExpandTaskList,
+} from "./taskAPI";
+
 import { message } from "antd";
 
 // 封装是按功能的，要返回boolean值，表示是否处理了快捷键
@@ -79,6 +90,7 @@ export function handleShotCutForDel(e: KeyboardEvent,
     return false;
 }
 export async function handleShotCutForCreateTaskAfter(e: KeyboardEvent,
+    expandedRowKeys: string[],
     selectedRow: DataRow,
     setData: (value: SetStateAction<DataRow[]>) => void,
     setSelectedRowKey: (value: SetStateAction<string>) => void,
@@ -100,7 +112,7 @@ export async function handleShotCutForCreateTaskAfter(e: KeyboardEvent,
     }
 
     // 重新获取数据以刷新表格
-    const newData = await getTaskList();
+    const newData = await getAllExpandTaskList(expandedRowKeys,setData);
     setData(newData);
 
     // 选中新创建的节点
@@ -131,7 +143,7 @@ export async function handleShotCutForCreateTaskChild(e: KeyboardEvent,
     });
 
     // 重新获取数据以刷新表格
-    const newData = await getTaskList();
+    const newData = await getAllExpandTaskList(expandedRowKeys,setData);
     setData(newData);
 
     // 展开父节点（当前选中节点）
