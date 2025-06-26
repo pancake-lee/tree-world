@@ -16,35 +16,31 @@ import {
     Space,
     Drawer,
     Form,
-    message,
     ConfigProvider,
     theme,
-    Modal,
-    TableProps,
 } from "antd";
 import {
     ColumnMeta,
     DataRow,
     getRowByKey,
-    getParentByKey,
-    getSiblingsByKey,
     updateRowOrder,
-    getTableColumns,
-    getTaskList,
-    updateTask,
-    deleteTaskByIDList,
-    createTask,
 } from "./tableData";
+
+import {
+    getTableColumns,
+    getAllExpandTaskList,
+    updateTask,
+    loadChildrenIfNeeded,
+} from "./taskAPI";
+
 import {
     getColDefaultWidths,
     getColWidth,
     getColumnSearchProps,
-    getOpsColumn,
 } from "./tableColumn";
 
 import "antd/dist/reset.css";
-import { SearchOutlined,CaretRightOutlined } from "@ant-design/icons";
-import type { ColumnType } from "antd/es/table";
+import { CaretRightOutlined } from "@ant-design/icons";
 import { handleShotCutForColSelect, handleShotCutForCreateTaskAfter, handleShotCutForCreateTaskChild, handleShotCutForDel, handleShotCutForDrawer, handleShotCutForEditing, handleShotCutForExpand, handleShotCutForRowSelect } from "./tableShortcut";
 import { useDeleteModal } from "./tableDel";
 
@@ -58,6 +54,21 @@ export default function Home() {
         setMounted(true);
     }, []);
 
+    // 展开状态管理 - 添加持久化
+    const [expandedRowKeys, setExpandedRowKeys] = useState<string[]>(() => {
+        if (typeof window === "undefined") return [];
+        const saved = localStorage.getItem(EXPANDED_KEYS_KEY);
+        if (!saved) return [];
+        try {return JSON.parse(saved);}
+        catch {return [];}
+    });
+
+    // 持久化展开状态
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        localStorage.setItem(EXPANDED_KEYS_KEY, JSON.stringify(expandedRowKeys));
+    }, [expandedRowKeys]);
+
     // --------------------------------------------------
     // 初始化数据
     const [data, setData] = useState<DataRow[]>([]);
@@ -68,7 +79,7 @@ export default function Home() {
         getTableColumns().then((res) => {
             setColumns(res);
         });
-        getTaskList().then((res) => {
+        getAllExpandTaskList(expandedRowKeys, setData).then((res) => {
             setData(res);
         });
     }, []);
@@ -164,21 +175,6 @@ export default function Home() {
     const [selectedRowKey, setSelectedRowKey] = useState<string>("");
     const [selectedColIdx, setSelectedColIdx] = useState<string>("");
     
-    // 展开状态管理 - 添加持久化
-    const [expandedRowKeys, setExpandedRowKeys] = useState<string[]>(() => {
-        if (typeof window === "undefined") return [];
-        const saved = localStorage.getItem(EXPANDED_KEYS_KEY);
-        if (!saved) return [];
-        try {return JSON.parse(saved);}
-        catch {return [];}
-    });
-
-    // 持久化展开状态
-    useEffect(() => {
-        if (typeof window === "undefined") return;
-        localStorage.setItem(EXPANDED_KEYS_KEY, JSON.stringify(expandedRowKeys));
-    }, [expandedRowKeys]);
-
     // --------------------------------------------------
     const {handleDeleteClick,getDeleteModalContent}= useDeleteModal(data, setData, setSelectedRowKey);
 
@@ -217,8 +213,10 @@ export default function Home() {
                 columns, selectedColIdx, setSelectedColIdx)) {
                 return;
             }
-            if (await handleShotCutForCreateTaskAfter(e, selectedRow,
-                setData, setSelectedRowKey)){
+            if (await handleShotCutForCreateTaskAfter(e, 
+                expandedRowKeys,
+                selectedRow, setData, 
+                setSelectedRowKey)){
                 return;
             }
           
@@ -375,8 +373,17 @@ export default function Home() {
             expandable={{ 
                 expandIconColumnIndex: expandColIdx,
                 expandedRowKeys: expandedRowKeys,
-                onExpand: (expanded, record) => {
+                onExpand: async (expanded, record) => {
                     if (expanded) {
+                        // 展开时尝试加载record的子节点，的子节点
+                        record.children?.forEach(async (child) => {
+                            const hasNewChildren = await loadChildrenIfNeeded(child);
+                            if (hasNewChildren) {
+                                // 如果加载了新的子节点，刷新数据状态
+                                setData([...data]); // 触发重新渲染
+                                console.log(`Loaded children for ${child.taskName}`);
+                            }
+                        });
                         setExpandedRowKeys(prev => [...prev, record.key]);
                     } else {
                         setExpandedRowKeys(prev => prev.filter(key => key !== record.key));
@@ -456,7 +463,9 @@ export default function Home() {
                         ).getBoundingClientRect();
                         const dropY = e.clientY;
                         const newData = await updateRowOrder(
+                            expandedRowKeys,
                             data,
+                            setData,
                             sourceKey,
                             targetKey,
                             dropY,

@@ -2,7 +2,17 @@
 
 import { Modal } from "antd";
 import { SetStateAction, useEffect, useState } from "react";
-import { DataRow, deleteTaskByIDList, getParentByKey, getRowByKey, getSiblingsByKey, getTaskList } from "./tableData";
+import { 
+    DataRow, 
+    getParentByKey, 
+    getRowByKey, 
+    getSiblingsByKey, 
+} from "./tableData";
+
+import { 
+    deleteTaskByIDList, 
+    getAllExpandTaskList, 
+} from "./taskAPI";
 
 // 自定义 Hook 封装删除功能
 export function useDeleteModal(
@@ -33,12 +43,17 @@ export function useDeleteModal(
         // 在删除前确定下一个要选中的节点
         const nextSelectedKey = findNextSelectedNode(data, curRow);
 
-        await deleteTaskByIDList([curRow.id]);
+        const ok = await deleteTaskByIDList([curRow.id]);
+        if (!ok) {
+            console.error("删除任务失败");
+            return;
+        }
+
         setDeleteModalOpen(false);
         setDeleteTargetKey("");
 
-        // 刷新数据
-        const newData = await getTaskList();
+        // 直接从data中删除节点
+        const newData = removeNodeFromData(data, deleteTargetKey);
         setData(newData);
 
         // 选中最靠近的节点
@@ -108,4 +123,23 @@ function findNextSelectedNode(data: DataRow[], deletedRow: DataRow): string | nu
         return null; // 根节点没有父节点
     }
     return parentRow.key;
+}
+
+// 从数据中递归删除指定节点
+function removeNodeFromData(data: DataRow[], targetKey: string): DataRow[] {
+    return data.reduce((acc: DataRow[], row) => {
+        if (row.key === targetKey) {
+            // 跳过要删除的节点
+            return acc;
+        }
+        
+        // 如果有子节点，递归处理子节点
+        const newRow = {
+            ...row,
+            children: row.children ? removeNodeFromData(row.children, targetKey) : []
+        };
+        
+        acc.push(newRow);
+        return acc;
+    }, []);
 }
