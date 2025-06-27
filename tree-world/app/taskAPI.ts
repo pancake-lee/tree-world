@@ -50,6 +50,12 @@ export async function updateTask(updatedTask: Partial<DataRow> & { id: number })
     const impl = await getApiImpl();
     return impl.updateTask(updatedTask);
 }
+export async function moveTask(
+    updatedTask: Partial<DataRow> & { id: number }
+): Promise<boolean> {
+    const impl = await getApiImpl();
+    return impl.moveTask(updatedTask);
+}
 
 // 子节点加载相关函数（仅在支持的版本中可用）
 export async function getChildTasks(parentId: number): Promise<DataRow[]> {
