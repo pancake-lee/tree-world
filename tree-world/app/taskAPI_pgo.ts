@@ -134,6 +134,24 @@ export async function updateTask(
     return DTO2VO_ApiTaskInfo(response.task);
 }
 
+export async function moveTask(
+    updatedTask: Partial<DataRow> & { id: number }
+): Promise<boolean> {
+    const req: ApiUpdateTaskRequest = {
+        task: VO2DTO_ApiTaskInfo(updatedTask),
+    };
+
+    const { status, data } = await apiInstance.taskCURDUpdateTask(req);
+    if (status !== 200) {
+        console.log(`updateTask failed with status: ${status}`);
+        return false; 
+    }
+    // const response = data as ApiUpdateTaskResponse;
+    // return DTO2VO_ApiTaskInfo(response.task);
+    return true; 
+}
+
+
 // 获取表格列信息
 export async function getTableColumns(): Promise<ColumnMeta[]> {
     const columns: ColumnMeta[] = [

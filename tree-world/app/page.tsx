@@ -88,9 +88,7 @@ export default function Home() {
         });
         // 等待 expandedRowKeys 从 localStorage 加载完成后再获取数据
         if (mounted) {
-            getAllExpandTaskList(expandedRowKeys, setData).then((res) => {
-                setData(res);
-            });
+            getAllExpandTaskList(expandedRowKeys, setData);
         }
     }, [mounted, expandedRowKeys]);
 
@@ -174,16 +172,27 @@ export default function Home() {
     };
 
     const save = async (key: string) => {
+        setEditingRowKey("");
+
         const row = (await form.validateFields()) as DataRow;
         const curRow = getRowByKey(data, key);
         if (!curRow) return;
-        const newRow = await updateTask({ ...row, id: curRow.id });
-        // 不变更位置，可以只更新本行，而不用刷新全部
-        Object.assign(curRow!, newRow);
-        setData(data);        
-        setEditingRowKey("");
-    };
 
+        // 简单的值比较 - 检查可能变更的字段
+        const hasChanges = Object.keys(row).some(field => {
+            return curRow[field as keyof DataRow] !== row[field as keyof DataRow];
+        });
+        
+        if (!hasChanges) {
+            // 如果没有修改内容，则不需要更新
+            return;
+        }
+
+        const newRow = await updateTask({...curRow, ...row, id: curRow.id });
+        // 不变更位置，可以只更新本行，而不用刷新全部
+        Object.assign(curRow, newRow);
+        setData([...data]);
+    };
 
     // --------------------------------------------------
     // 配置列，包括列头和单元格，上面定义了很多属性，都将设置到列配置中
@@ -472,6 +481,8 @@ export default function Home() {
                 },
                 onDrop: async (e: React.DragEvent) => {
                     e.preventDefault();
+                    setDragOverInfo(null);
+
                     const sourceKey = e.dataTransfer.getData("text/plain");
                     const targetKey = record.key;
                     if (sourceKey && sourceKey !== targetKey) {
@@ -479,7 +490,8 @@ export default function Home() {
                             e.currentTarget as HTMLElement
                         ).getBoundingClientRect();
                         const dropY = e.clientY;
-                        const newData = await updateRowOrder(
+                        // const newData = await updateRowOrder(
+                        await updateRowOrder(
                             expandedRowKeys,
                             data,
                             setData,
@@ -488,9 +500,8 @@ export default function Home() {
                             dropY,
                             targetRect
                         );
-                        setData(newData);
+                        // setData(newData);
                     }
-                    setDragOverInfo(null);
                 },
             })}
         />
@@ -522,7 +533,15 @@ export default function Home() {
     };
     // 抽屉编辑
     const handleDrawerSave = async () => {
+        setDrawerEditing(false);
+
         const curRow = getRowByKey(data, drawerEditingKey);
+        if (!curRow) {return;}
+        if (curRow.desc === drawerEditDesc && curRow.metadata === drawerEditMetadata) {
+            // 如果没有修改内容，则不需要更新
+            return;
+        }
+
         const newRow = await updateTask({
             ...curRow, id: curRow!.id,
             desc: drawerEditDesc,
@@ -533,7 +552,6 @@ export default function Home() {
         setData(data);
         setDesc(drawerEditDesc);
         setMetadata({ ...drawerEditMetadata });
-        setDrawerEditing(false);
     };
 
 

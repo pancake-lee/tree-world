@@ -1,5 +1,5 @@
 import { SetStateAction } from "react";
-import { getAllExpandTaskList, updateTask } from "./taskAPI";
+import { getAllExpandTaskList, updateTask,moveTask } from "./taskAPI";
 
 // 列定义结构
 export type ColumnMeta = {
@@ -127,7 +127,7 @@ export async function updateRowOrder(
         // 互换的情况是，last(1) - dst(2)(p1) - src(3)(p2)
         // 按上面代码，last(1) - src(3)(p1) dst(2)(p3) 
 
-        await updateTask(dstRow);
+        await moveTask(dstRow);
     } else if (dropY > bottomThreshold) {
         // src移动到dst下面
         srcRow.parentID = dstRow.parentID;
@@ -138,7 +138,7 @@ export async function updateRowOrder(
         srcRow.prevID = -1;
     }
 
-    await updateTask(srcRow);
+    await moveTask(srcRow);
 
     return getAllExpandTaskList(expandedRowKeys,setData); // 刷新任务列表
 }
